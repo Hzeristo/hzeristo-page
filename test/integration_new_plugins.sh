@@ -8,16 +8,20 @@
 set -euo pipefail
 
 tmp_dir="$(mktemp -d)"
+INTEGRATION_TMP_DIR="${tmp_dir}"
 cleanup() {
   rm -rf "${tmp_dir}"
 }
 trap cleanup EXIT
 
+# shellcheck source=test/lib/integration_build.sh
+source test/lib/integration_build.sh
+
 build() {
   local name="$1"
   shift
   local out="${tmp_dir}/site-${name}"
-  bundle exec jekyll build "$@" -d "${out}" >/dev/null
+  integration_build "${out}" "$@"
   echo "${out}"
 }
 
