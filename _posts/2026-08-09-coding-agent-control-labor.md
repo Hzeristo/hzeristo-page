@@ -30,7 +30,6 @@ GPT-5.6 Sol 不是一个"弱"模型。在 Artificial Analysis 当前的 Coding A
 | SWE-Atlas-QnA                        |                        55% |                     43% |
 | 平均模型成本 / 运行时间 / token 用量 |                       更高 |                    更低 |
 
-
 但是本文讨论的是另一件事：一个强模型经过特定 harness 组织之后，究竟是在替用户承担持续工作，还是要求用户长期承担一套隐藏的控制劳动，才能释放它的局部执行能力。
 
 为了保持全文一致，下面用五个固定术语：
@@ -208,7 +207,7 @@ $$
 
 项目 memory 会加深这种俘获。当旧计划、旧规则、旧 workaround 和旧 memory 仍然存在于有效上下文时，它们共同构成一种 sunk-context：当前 story 已经有大量文本支持，已有代码不断提供局部约束，memory 记录了如何让当前方案成立，workflow 奖励继续取得可审计进展，而删除当前 story 意味着废弃大量已完成工作。于是 agent 即使看见反例，也更容易把反例压成 edge case、deviation、compatibility issue 或后续重构项，而不是承认当前 specification 或 problem framing 本身可能不成立。
 
-对于这一点，ACL'26 best paper "The Imperfective Paradox in Large Language Models"[https://arxiv.org/abs/2601.09373] 有深入的，原理性的讨论。
+对于这一点，ACL'26 best paper [The Imperfective Paradox in Large Language Models](https://arxiv.org/abs/2601.09373) 有深入的、原理性的讨论。
 
 ---
 
