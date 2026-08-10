@@ -235,6 +235,7 @@ exclude:
   - readme_preview/
   - gems/
   - migrations/
+  - test/
   - vendor
 keep_files:
   - CNAME
