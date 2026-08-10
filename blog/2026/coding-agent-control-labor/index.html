@@ -15,7 +15,7 @@
 → implementation plan
 → 当前 repo、memory 与工作流
 → 当前局部问题
-</code></pre></div></div> <p>随着 agent 接触越来越多当前文件、规则、测试和错误，最后一级逐渐获得最高权威。系统不再问当前实现是否仍然服务原始目标，而开始问如何让当前实现通过它自己已经接受的流程。</p> <p>一个 GitHub 用户给出了非常准确的案例。用户要求在多个历史版本中找到正确版本并切换，也就是 <code class="language-plaintext highlighter-rouge">SELECT best_tree</code>，模型却把任务执行成 <code class="language-plaintext highlighter-rouge">PATCH current_tree</code>。它读取其他版本不是为了选择正确版本，而是把其他版本里的实现迁回当前错误版本，继续修补眼前世界。当前 repo 中的 gate、校准流程和既有程序甚至被用来否决”离开当前错误世界”的用户命令。这正是局部故事俘获：下游执行规则反过来覆盖了上游世界选择。</p> <p>项目 memory 会加深这种俘获。当旧计划、旧规则、旧 workaround 和旧 memory 仍然存在于有效上下文时，它们共同构成一种 sunk-context：当前 story 已经有大量文本支持，已有代码不断提供局部约束，memory 记录了如何让当前方案成立，workflow 奖励继续取得可审计进展，而删除当前 story 意味着废弃大量已完成工作。于是 agent 即使看见反例，也更容易把反例压成 edge case、deviation、compatibility issue 或后续重构项，而不是承认当前 specification 或 problem framing 本身可能不成立。</p> <p>对于这一点，ACL’26 best paper “The Imperfective Paradox in Large Language Models”[https://arxiv.org/abs/2601.09373] 有深入的，原理性的讨论。</p> <hr> <h3 id="26-过早闭合可审计证据被误当成充分证据">2.6 过早闭合：可审计证据被误当成充分证据</h3> <p>在我的 auto-research 使用中，局部故事俘获通常和过早闭合一起出现。真正的问题可能是”某篇 memory paper 是否在相同 scope、机制、生命周期和功能条件下，实现并验证了 update”，Codex 的可审计吸引子却容易把它压成”有没有一篇 paper 在文字中提到了 update”。找到一个 textual witness 之后，系统就倾向于得出”update 已经有人做了”。它不一定在事实层面造假，而是在证据粒度上偷换问题：</p> \[\text{topic-level mention} \rightarrow \text{claim-level coverage}\] <p>仅仅提示”请多思考，不要提前得出结论”通常解决不了这个问题，因为这里同时存在两个独立失效。一个是 stopping failure，找到第一个可支持 witness 后就停止调查。另一个是 representation-resolution failure，没有把目标拆成足够细的 claim 和必要条件。即使把 reasoning 时间拉长，模型也可能只是在 topic level 上生成一篇更长、更漂亮、更可审计的总结。</p> <p>所以真正有效的 skill 不能主要堆 disposition rules，而应该提供不可跳步的工作流：</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>拆解目标 claim 的必要条件
+</code></pre></div></div> <p>随着 agent 接触越来越多当前文件、规则、测试和错误，最后一级逐渐获得最高权威。系统不再问当前实现是否仍然服务原始目标，而开始问如何让当前实现通过它自己已经接受的流程。</p> <p>一个 GitHub 用户给出了非常准确的案例。用户要求在多个历史版本中找到正确版本并切换，也就是 <code class="language-plaintext highlighter-rouge">SELECT best_tree</code>，模型却把任务执行成 <code class="language-plaintext highlighter-rouge">PATCH current_tree</code>。它读取其他版本不是为了选择正确版本，而是把其他版本里的实现迁回当前错误版本，继续修补眼前世界。当前 repo 中的 gate、校准流程和既有程序甚至被用来否决”离开当前错误世界”的用户命令。这正是局部故事俘获：下游执行规则反过来覆盖了上游世界选择。</p> <p>项目 memory 会加深这种俘获。当旧计划、旧规则、旧 workaround 和旧 memory 仍然存在于有效上下文时，它们共同构成一种 sunk-context：当前 story 已经有大量文本支持，已有代码不断提供局部约束，memory 记录了如何让当前方案成立，workflow 奖励继续取得可审计进展，而删除当前 story 意味着废弃大量已完成工作。于是 agent 即使看见反例，也更容易把反例压成 edge case、deviation、compatibility issue 或后续重构项，而不是承认当前 specification 或 problem framing 本身可能不成立。</p> <p>对于这一点，ACL’26 best paper <a href="https://arxiv.org/abs/2601.09373" rel="external nofollow noopener" target="_blank">The Imperfective Paradox in Large Language Models</a> 有深入的、原理性的讨论。</p> <hr> <h3 id="26-过早闭合可审计证据被误当成充分证据">2.6 过早闭合：可审计证据被误当成充分证据</h3> <p>在我的 auto-research 使用中，局部故事俘获通常和过早闭合一起出现。真正的问题可能是”某篇 memory paper 是否在相同 scope、机制、生命周期和功能条件下，实现并验证了 update”，Codex 的可审计吸引子却容易把它压成”有没有一篇 paper 在文字中提到了 update”。找到一个 textual witness 之后，系统就倾向于得出”update 已经有人做了”。它不一定在事实层面造假，而是在证据粒度上偷换问题：</p> \[\text{topic-level mention} \rightarrow \text{claim-level coverage}\] <p>仅仅提示”请多思考，不要提前得出结论”通常解决不了这个问题，因为这里同时存在两个独立失效。一个是 stopping failure，找到第一个可支持 witness 后就停止调查。另一个是 representation-resolution failure，没有把目标拆成足够细的 claim 和必要条件。即使把 reasoning 时间拉长，模型也可能只是在 topic level 上生成一篇更长、更漂亮、更可审计的总结。</p> <p>所以真正有效的 skill 不能主要堆 disposition rules，而应该提供不可跳步的工作流：</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>拆解目标 claim 的必要条件
 → 逐篇检查 scope
 → 区分 mention / implementation / evidence / ablation
 → 保存 unresolved cells
@@ -68,6 +68,61 @@ ninja.data = [{
         handler: () => {
           
             window.location.href = "/hzeristo-page/blog/2026/coding-agent-control-labor/";
+          
+        },
+      },{id: "post-a-post-with-marimo-snippets",
+        
+          title: "a post with marimo snippets",
+        
+        description: "running Python in the browser with marimo",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/hzeristo-page/blog/2025/marimo/";
+          
+        },
+      },{id: "post-a-post-with-giscus-comments",
+        
+          title: "a post with giscus comments",
+        
+        description: "an example of a blog post with giscus comments",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/hzeristo-page/blog/2022/giscus-comments/";
+          
+        },
+      },{id: "post-یک-نوشتهٔ-راست-چین",
+        
+          title: "یک نوشتهٔ راست‌چین",
+        
+        description: "نمونه‌ای از پشتیبانی زبان‌های راست‌چین",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/hzeristo-page/blog/2022/rtl/";
+          
+        },
+      },{id: "post-a-distill-style-blog-post",
+        
+          title: "a distill-style blog post",
+        
+        description: "an example of a distill-style blog post and main elements",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/hzeristo-page/blog/2021/distill/";
+          
+        },
+      },{id: "post-a-post-with-disqus-comments",
+        
+          title: "a post with disqus comments",
+        
+        description: "an example of a blog post with disqus comments",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/hzeristo-page/blog/2015/disqus-comments/";
           
         },
       },{id: "projects-project-1",

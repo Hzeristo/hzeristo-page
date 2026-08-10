@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en"><generator uri="https://jekyllrb.com/" version="4.4.1">Jekyll</generator><link href="https://hzeristo.github.io/hzeristo-page/feed.xml" rel="self" type="application/atom+xml"/><link href="https://hzeristo.github.io/hzeristo-page/" rel="alternate" type="text/html" hreflang="en"/><updated>2026-08-10T03:15:57+00:00</updated><id>https://hzeristo.github.io/hzeristo-page/feed.xml</id><title type="html">hzeristos personal page</title><subtitle>Currently a PhD student at Zhejiang University. </subtitle><entry><title type="html">第二份工作：Coding Agent 如何把控制劳动退还给用户</title><link href="https://hzeristo.github.io/hzeristo-page/blog/2026/coding-agent-control-labor/" rel="alternate" type="text/html" title="第二份工作：Coding Agent 如何把控制劳动退还给用户"/><published>2026-08-09T12:00:00+00:00</published><updated>2026-08-09T12:00:00+00:00</updated><id>https://hzeristo.github.io/hzeristo-page/blog/2026/coding-agent-control-labor</id><content type="html" xml:base="https://hzeristo.github.io/hzeristo-page/blog/2026/coding-agent-control-labor/"><![CDATA[<h2 id="从-codex-与-claude-code-的差异谈被-benchmark-漏算的人类工作">从 Codex 与 Claude Code 的差异，谈被 benchmark 漏算的人类工作</h2> <p>Coding agent 最恶毒的问题不是它偶尔发生的实现漂移，也不是用户偶尔需要补一个 steering prompt。真正的问题是它把一整套持续的项目管理、状态维护和判断控制退还给用户，却仍然把最后生成的代码全部计成自己的生产力。</p> <p>这里要严格区分任务和工作。任务可以是查找某个 API 的调用点、修复一个测试、实现一个已经冻结的接口、给某个模块补类型定义。工作则是持续承担：当前究竟在解决什么问题、哪些假设仍然成立、任务该怎么分解、哪些新发现要求修改 specification、哪些历史决策已经失效、什么时候该继续什么时候该停、最终结果是不是真的符合目标。</p> <p>用户本来有自己的研究、设计或工程要做，不可能每天再花一半时间管理工具的上下文、清理记忆、调度 subagent、修订规则、阻止错误 closure。那不是一个附带任务，那是第二份工作。</p> <hr/> <h2 id="一不是代码写得好不好">一、不是”代码写得好不好”</h2> <p>GPT-5.6 Sol 不是一个”弱”模型。在 Artificial Analysis 当前的 Coding Agent Index v1.3 里，Claude Code + Opus 5 xHigh 与 Codex + GPT-5.6 Sol Max 的综合分数同为 67，子项分开：</p> <table> <thead> <tr> <th>指标</th> <th style="text-align: right">Claude Code + Opus 5 xHigh</th> <th style="text-align: right">Codex + GPT-5.6 Sol Max</th> </tr> </thead> <tbody> <tr> <td>Coding Agent Index</td> <td style="text-align: right">67</td> <td style="text-align: right">67</td> </tr> <tr> <td>DeepSWE</td> <td style="text-align: right">更低</td> <td style="text-align: right">69%</td> </tr> <tr> <td>Terminal-Bench v2</td> <td style="text-align: right">更低</td> <td style="text-align: right">88%</td> </tr> <tr> <td>SWE-Atlas-QnA</td> <td style="text-align: right">55%</td> <td style="text-align: right">43%</td> </tr> <tr> <td>平均模型成本 / 运行时间 / token 用量</td> <td style="text-align: right">更高</td> <td style="text-align: right">更低</td> </tr> </tbody> </table> <p>但是本文讨论的是另一件事：一个强模型经过特定 harness 组织之后，究竟是在替用户承担持续工作，还是要求用户长期承担一套隐藏的控制劳动，才能释放它的局部执行能力。</p> <p>为了保持全文一致，下面用五个固定术语：</p> <ul> <li>长期状态不稳定，指项目目标、当前 checkpoint、未解决问题和历史决策，无法在长会话、压缩、恢复和跨 session 使用后稳定存活</li> <li>编排退化，指 orchestration 退化成任务分发、增加 agent job、重复 review 和汇总摘要，而没有真正维持全局问题图景</li> <li>局部故事俘获，指当前代码、当前 plan、当前 memory 和当前工作流逐渐获得高于原始目标的权威，agent 开始维护眼前方案，不再重新判断方案是否正确</li> <li>过早闭合，指证据不足时系统仍倾向于形成完整、可交付、可解释的结果，而不是保留 unresolved</li> <li>规则堆积，指用户为了控制前述问题不断增加 <code class="language-plaintext highlighter-rouge">AGENTS.md</code>、skills、memories 和额外流程，模型又偏好保留旧内容、字面执行新规则，最终形成 append-only 的控制系统</li> </ul> <p>这五个问题不是彼此独立的 bug，而会构成一个自强化循环：</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>长期状态不稳定
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en"><generator uri="https://jekyllrb.com/" version="4.4.1">Jekyll</generator><link href="https://hzeristo.github.io/hzeristo-page/feed.xml" rel="self" type="application/atom+xml"/><link href="https://hzeristo.github.io/hzeristo-page/" rel="alternate" type="text/html" hreflang="en"/><updated>2026-08-10T03:22:35+00:00</updated><id>https://hzeristo.github.io/hzeristo-page/feed.xml</id><title type="html">hzeristos personal page</title><subtitle>Currently a PhD student at Zhejiang University. </subtitle><entry><title type="html">第二份工作：Coding Agent 如何把控制劳动退还给用户</title><link href="https://hzeristo.github.io/hzeristo-page/blog/2026/coding-agent-control-labor/" rel="alternate" type="text/html" title="第二份工作：Coding Agent 如何把控制劳动退还给用户"/><published>2026-08-09T12:00:00+00:00</published><updated>2026-08-09T12:00:00+00:00</updated><id>https://hzeristo.github.io/hzeristo-page/blog/2026/coding-agent-control-labor</id><content type="html" xml:base="https://hzeristo.github.io/hzeristo-page/blog/2026/coding-agent-control-labor/"><![CDATA[<h2 id="从-codex-与-claude-code-的差异谈被-benchmark-漏算的人类工作">从 Codex 与 Claude Code 的差异，谈被 benchmark 漏算的人类工作</h2> <p>Coding agent 最恶毒的问题不是它偶尔发生的实现漂移，也不是用户偶尔需要补一个 steering prompt。真正的问题是它把一整套持续的项目管理、状态维护和判断控制退还给用户，却仍然把最后生成的代码全部计成自己的生产力。</p> <p>这里要严格区分任务和工作。任务可以是查找某个 API 的调用点、修复一个测试、实现一个已经冻结的接口、给某个模块补类型定义。工作则是持续承担：当前究竟在解决什么问题、哪些假设仍然成立、任务该怎么分解、哪些新发现要求修改 specification、哪些历史决策已经失效、什么时候该继续什么时候该停、最终结果是不是真的符合目标。</p> <p>用户本来有自己的研究、设计或工程要做，不可能每天再花一半时间管理工具的上下文、清理记忆、调度 subagent、修订规则、阻止错误 closure。那不是一个附带任务，那是第二份工作。</p> <hr/> <h2 id="一不是代码写得好不好">一、不是”代码写得好不好”</h2> <p>GPT-5.6 Sol 不是一个”弱”模型。在 Artificial Analysis 当前的 Coding Agent Index v1.3 里，Claude Code + Opus 5 xHigh 与 Codex + GPT-5.6 Sol Max 的综合分数同为 67，子项分开：</p> <table> <thead> <tr> <th>指标</th> <th style="text-align: right">Claude Code + Opus 5 xHigh</th> <th style="text-align: right">Codex + GPT-5.6 Sol Max</th> </tr> </thead> <tbody> <tr> <td>Coding Agent Index</td> <td style="text-align: right">67</td> <td style="text-align: right">67</td> </tr> <tr> <td>DeepSWE</td> <td style="text-align: right">更低</td> <td style="text-align: right">69%</td> </tr> <tr> <td>Terminal-Bench v2</td> <td style="text-align: right">更低</td> <td style="text-align: right">88%</td> </tr> <tr> <td>SWE-Atlas-QnA</td> <td style="text-align: right">55%</td> <td style="text-align: right">43%</td> </tr> <tr> <td>平均模型成本 / 运行时间 / token 用量</td> <td style="text-align: right">更高</td> <td style="text-align: right">更低</td> </tr> </tbody> </table> <p>但是本文讨论的是另一件事：一个强模型经过特定 harness 组织之后，究竟是在替用户承担持续工作，还是要求用户长期承担一套隐藏的控制劳动，才能释放它的局部执行能力。</p> <p>为了保持全文一致，下面用五个固定术语：</p> <ul> <li>长期状态不稳定，指项目目标、当前 checkpoint、未解决问题和历史决策，无法在长会话、压缩、恢复和跨 session 使用后稳定存活</li> <li>编排退化，指 orchestration 退化成任务分发、增加 agent job、重复 review 和汇总摘要，而没有真正维持全局问题图景</li> <li>局部故事俘获，指当前代码、当前 plan、当前 memory 和当前工作流逐渐获得高于原始目标的权威，agent 开始维护眼前方案，不再重新判断方案是否正确</li> <li>过早闭合，指证据不足时系统仍倾向于形成完整、可交付、可解释的结果，而不是保留 unresolved</li> <li>规则堆积，指用户为了控制前述问题不断增加 <code class="language-plaintext highlighter-rouge">AGENTS.md</code>、skills、memories 和额外流程，模型又偏好保留旧内容、字面执行新规则，最终形成 append-only 的控制系统</li> </ul> <p>这五个问题不是彼此独立的 bug，而会构成一个自强化循环：</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>长期状态不稳定
 → 用户增加规则、memory 和外部状态文件
 → 规则堆积与上下文膨胀
 → 更频繁的压缩与渐进式检索
@@ -9,9 +9,1038 @@
 → implementation plan
 → 当前 repo、memory 与工作流
 → 当前局部问题
-</code></pre></div></div> <p>随着 agent 接触越来越多当前文件、规则、测试和错误，最后一级逐渐获得最高权威。系统不再问当前实现是否仍然服务原始目标，而开始问如何让当前实现通过它自己已经接受的流程。</p> <p>一个 GitHub 用户给出了非常准确的案例。用户要求在多个历史版本中找到正确版本并切换，也就是 <code class="language-plaintext highlighter-rouge">SELECT best_tree</code>，模型却把任务执行成 <code class="language-plaintext highlighter-rouge">PATCH current_tree</code>。它读取其他版本不是为了选择正确版本，而是把其他版本里的实现迁回当前错误版本，继续修补眼前世界。当前 repo 中的 gate、校准流程和既有程序甚至被用来否决”离开当前错误世界”的用户命令。这正是局部故事俘获：下游执行规则反过来覆盖了上游世界选择。</p> <p>项目 memory 会加深这种俘获。当旧计划、旧规则、旧 workaround 和旧 memory 仍然存在于有效上下文时，它们共同构成一种 sunk-context：当前 story 已经有大量文本支持，已有代码不断提供局部约束，memory 记录了如何让当前方案成立，workflow 奖励继续取得可审计进展，而删除当前 story 意味着废弃大量已完成工作。于是 agent 即使看见反例，也更容易把反例压成 edge case、deviation、compatibility issue 或后续重构项，而不是承认当前 specification 或 problem framing 本身可能不成立。</p> <p>对于这一点，ACL’26 best paper “The Imperfective Paradox in Large Language Models”[https://arxiv.org/abs/2601.09373] 有深入的，原理性的讨论。</p> <hr/> <h3 id="26-过早闭合可审计证据被误当成充分证据">2.6 过早闭合：可审计证据被误当成充分证据</h3> <p>在我的 auto-research 使用中，局部故事俘获通常和过早闭合一起出现。真正的问题可能是”某篇 memory paper 是否在相同 scope、机制、生命周期和功能条件下，实现并验证了 update”，Codex 的可审计吸引子却容易把它压成”有没有一篇 paper 在文字中提到了 update”。找到一个 textual witness 之后，系统就倾向于得出”update 已经有人做了”。它不一定在事实层面造假，而是在证据粒度上偷换问题：</p> \[\text{topic-level mention} \rightarrow \text{claim-level coverage}\] <p>仅仅提示”请多思考，不要提前得出结论”通常解决不了这个问题，因为这里同时存在两个独立失效。一个是 stopping failure，找到第一个可支持 witness 后就停止调查。另一个是 representation-resolution failure，没有把目标拆成足够细的 claim 和必要条件。即使把 reasoning 时间拉长，模型也可能只是在 topic level 上生成一篇更长、更漂亮、更可审计的总结。</p> <p>所以真正有效的 skill 不能主要堆 disposition rules，而应该提供不可跳步的工作流：</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>拆解目标 claim 的必要条件
+</code></pre></div></div> <p>随着 agent 接触越来越多当前文件、规则、测试和错误，最后一级逐渐获得最高权威。系统不再问当前实现是否仍然服务原始目标，而开始问如何让当前实现通过它自己已经接受的流程。</p> <p>一个 GitHub 用户给出了非常准确的案例。用户要求在多个历史版本中找到正确版本并切换，也就是 <code class="language-plaintext highlighter-rouge">SELECT best_tree</code>，模型却把任务执行成 <code class="language-plaintext highlighter-rouge">PATCH current_tree</code>。它读取其他版本不是为了选择正确版本，而是把其他版本里的实现迁回当前错误版本，继续修补眼前世界。当前 repo 中的 gate、校准流程和既有程序甚至被用来否决”离开当前错误世界”的用户命令。这正是局部故事俘获：下游执行规则反过来覆盖了上游世界选择。</p> <p>项目 memory 会加深这种俘获。当旧计划、旧规则、旧 workaround 和旧 memory 仍然存在于有效上下文时，它们共同构成一种 sunk-context：当前 story 已经有大量文本支持，已有代码不断提供局部约束，memory 记录了如何让当前方案成立，workflow 奖励继续取得可审计进展，而删除当前 story 意味着废弃大量已完成工作。于是 agent 即使看见反例，也更容易把反例压成 edge case、deviation、compatibility issue 或后续重构项，而不是承认当前 specification 或 problem framing 本身可能不成立。</p> <p>对于这一点，ACL’26 best paper <a href="https://arxiv.org/abs/2601.09373">The Imperfective Paradox in Large Language Models</a> 有深入的、原理性的讨论。</p> <hr/> <h3 id="26-过早闭合可审计证据被误当成充分证据">2.6 过早闭合：可审计证据被误当成充分证据</h3> <p>在我的 auto-research 使用中，局部故事俘获通常和过早闭合一起出现。真正的问题可能是”某篇 memory paper 是否在相同 scope、机制、生命周期和功能条件下，实现并验证了 update”，Codex 的可审计吸引子却容易把它压成”有没有一篇 paper 在文字中提到了 update”。找到一个 textual witness 之后，系统就倾向于得出”update 已经有人做了”。它不一定在事实层面造假，而是在证据粒度上偷换问题：</p> \[\text{topic-level mention} \rightarrow \text{claim-level coverage}\] <p>仅仅提示”请多思考，不要提前得出结论”通常解决不了这个问题，因为这里同时存在两个独立失效。一个是 stopping failure，找到第一个可支持 witness 后就停止调查。另一个是 representation-resolution failure，没有把目标拆成足够细的 claim 和必要条件。即使把 reasoning 时间拉长，模型也可能只是在 topic level 上生成一篇更长、更漂亮、更可审计的总结。</p> <p>所以真正有效的 skill 不能主要堆 disposition rules，而应该提供不可跳步的工作流：</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>拆解目标 claim 的必要条件
 → 逐篇检查 scope
 → 区分 mention / implementation / evidence / ablation
 → 保存 unresolved cells
 → 最后才能综合
-</code></pre></div></div> <p>这也是我认为 Codex 的 skill 里应该少放全局规则、多放阶段化 workflow 的原因。它对程序的字面服从可以被利用，但对大量抽象规则的字面服从，最终只会加剧规则堆积。</p> <hr/> <h3 id="27-规则堆积用户--instruction-lawyer">2.7 规则堆积：用户 = instruction lawyer</h3> <p>为了修复长期状态不稳定、编排退化、局部故事俘获和过早闭合，用户会不断增加规则：必须使用 subagent、subagent 只能做独立闭合任务、不返回原始上下文、只返回摘要、不得过早下结论、必须保持 claim 粒度、必须保留 unresolved、必须允许修改 spec、必须删除过期 memory、不得只 append。</p> <p>但 Codex 的指令遵循往往非常字面。一条为了阻止某类事故而写的规则，可能在完全无关的阶段被机械执行。模型会在 reasoning 中明确地说：”这一轮不做 X，不做 Y，不做 Z，因此只执行机械性的 A。”于是用户不得不继续给规则增加 scope、exception、phase、exit condition、escalation condition。<code class="language-plaintext highlighter-rouge">AGENTS.md</code> 与 skill 最终不再是一组高层协作原则，而逐渐变成一部不断打补丁的程序法典。</p> <p>这也是为什么 naive compaction skill 可能比原生压缩更差。它通常会把项目历史总结成当前目标、已完成内容、下一步和关键结论，但最容易被删掉的恰恰是：为什么放弃某条路径、哪些结论仍不确定、claim scope 如何变化、哪些 anomaly 尚未解释、哪些旧规则已经失效。同一个已经具有特定偏置的模型，给自己的偏置状态再写一次摘要，并不会自动获得独立性。</p> <p>最终产生的是：</p> \[\text{规则越多} \rightarrow \text{上下文越重} \rightarrow \text{压缩越频繁} \rightarrow \text{行为越机械} \rightarrow \text{用户继续补规则}\] <hr/> <h3 id="28-高延迟昂贵的用户控制">2.8 高延迟：昂贵的用户控制</h3> <p>延迟不只是一个 UX 缺点，它会改变用户的整个控制策略。当一次 steer 很昂贵时，用户会倾向于一次性交代更大任务、写更长 prompt、让 agent 自主跑更久、减少中间检查、在 <code class="language-plaintext highlighter-rouge">AGENTS.md</code> 里预先加入更多规则、让主 agent 承担更多 orchestration。于是出现另一个循环：</p> \[\text{高延迟} \rightarrow \text{更大任务批次} \rightarrow \text{更多上下文} \rightarrow \text{更多 compaction} \rightarrow \text{更多 drift} \rightarrow \text{更多规则}\] <p>所以响应速度的真正意义不是让人少等几十秒，而是决定人机控制回路能够多高频地运行。低成本、高频率的 steering 可以在 story 刚开始漂移时纠正它；低频 steering 则迫使用户在任务开始前写更多规则，并在任务结束后承担更大的 recovery 和 rework。</p> <hr/> <h2 id="三benchmark--arena强执行分数可以和差产品体验并存">三、Benchmark &amp; Arena：强执行分数可以和差产品体验并存</h2> <p>Artificial Analysis 当前把 Claude Code + Opus 5 xHigh 和 Codex + Sol Max 都评为 67，但内部结构不同。Sol/Codex 在 DeepSWE 拿到 69%、Terminal-Bench v2 拿到 88%；Opus/Claude Code 在 SWE-Atlas-QnA 拿到 55%，高于 Sol/Codex 的 43%；Codex 平均每任务更快、更便宜、用更少 token。</p> <p>这个 split 和本文讨论的差异高度一致。Sol/Codex 更强的部分主要是标准化 issue resolution、terminal execution、patch，以及测试和命令驱动的验证回路。Opus/Claude Code 更强的部分更接近跨模块代码库理解、长上下文中的关系恢复、situated repository reasoning。综合分数把两种完全不同的 agent disposition 压成了一个数字。</p> <p>更重要的是，这类 benchmark 预先给定：问题定义已经正确，任务边界固定，成功标准可执行，环境不需要真实用户回答，closure condition 也相对明确。它们主要测量：</p> \[\text{在正确 map 内完成任务的能力}\] <p>而不是：</p> \[\text{发现 map 错了并重写任务的能力}\] <p>Agent Arena 则显示了另一个有意义的分裂。截至 2026 年 8 月 5 日，Opus 5 High 的 Confirmed Success 为 16.42%，GPT-5.6 Sol xHigh 为 8.97%，也就是说 Opus 5 让用户明确确认任务完成的比例约为 Sol 的 1.83 倍。但两者在 Praise vs Complaint 上是 21.37% 对 21.32%，Steerability 是 9.08% 对 9.28%，几乎相同。</p> <p>这说明差距不能简单解释成用户更喜欢 Claude 的语气、或者 Claude 用户更容易夸模型。更合理的解释是 Sol 可以完成大量局部、可见、可审计、同时模型自认为有意义的工作，但这些工作更少转化成用户最终认可的 closure。</p> <p>而且 Artificial Analysis 明确说明其 Cost per Task 只统计 pay-per-token API 成本，不包括 infrastructure、engineering 和 supervision；Time per Task 也不包括 verifier、judge 和其他 harness overhead。换句话说，benchmark 中默认：</p> \[C_{\text{human control}} = 0\] <p>无论用户实际花了多少时间恢复状态、拆解任务、管理 subagent、清理 memory、修正 compaction、纠正局部故事俘获、阻止过早闭合、维护 <code class="language-plaintext highlighter-rouge">AGENTS.md</code> 和 skills，这些劳动都不会被计入 Codex 的成本。所以”Codex benchmark 更高、更快、更便宜”和”Codex 在真实长程工作中的总拥有成本更高”同时成立。</p> <p>一项对 Claude Code 和 Codex 执行相同科学计算任务的研究也观察到了不同 disposition：Claude Code 更快、更自主，但会静默偏离或重新解释 specification；Codex 更慢、更字面，并通过显式重启进行自我纠正。两者最后都完成任务，但在速度、可审计性和 instruction interpretation 上差异明显。</p> <p>这说明 Claude Code 也并非没有风险。Claude 的风险是自主性越权，Codex 的风险是把意图判断、状态控制、知识治理和工作编排大量退还给用户。</p> <hr/> <h2 id="四这个问题为什么恶毒">四、这个问题为什么恶毒</h2> <p>不只是因为管理 agent 很累。恶毒的地方在于，产品把用户最宝贵的职业时间重新分类成了”使用工具的摩擦”。</p> <p>用户原本的本职工作可能是提出研究问题、判断产品方向、设计系统、建立理论、完成创造性实现、解释实验结果。用了 agent 之后，可能有大量时间花在判断模型又忘了什么、决定是否该开 subagent、设计 subagent 的任务边界和返回格式、清理过时规则、修复 memory 漂移、判断它是不是正在维护错误 story、阻止错误 completion、为它编写更多 skills、重新启动一个 fresh context 做 reframing。这些不是原工作中的自然子任务，而是管理工具本身的持续劳动。</p> <h3 id="41-它消耗的是最高价值的人类注意力">4.1 它消耗的是最高价值的人类注意力</h3> <p>模型承担的是相对容易并行的执行，用户承担的却是 specification、semantic verification、architecture judgment、anomaly interpretation、reframing、memory lifecycle 和 closure authority。这恰恰是最昂贵、最难并行、最不能被频繁打断的人类工作。</p> <p>项目记忆问题尤其说明这一点。用户不是偶尔清理一个文件，而是在持续决定什么值得记、应该记多细、哪些 memory 已过期、哪些应该提升成正式规则、哪些应该删除、哪些冲突需要裁决、哪一个文件才是 source of truth。这是一整套知识库管理工作。</p> <h3 id="42-它在产品指标中不可见">4.2 它在产品指标中不可见</h3> <p>模型写出的 patch 被统计成模型产出，用户维护 agent 的时间却没有任何计量。于是：</p> \[\text{reported productivity} = \text{machine output} + 0 \times \text{human management work}\] <p>一个产品可以在 benchmark 中显得更快、更便宜，同时在现实中占掉用户整个工作日。</p> <h3 id="43-它会伪装成用户能力问题">4.3 它会伪装成用户能力问题</h3> <p>当系统表现不好时，最方便的解释是你没有写好 <code class="language-plaintext highlighter-rouge">AGENTS.md</code>、没有正确使用 subagent、skill 不够完善、prompt 粒度不对、没有定期清理 memory、没有搭建外部状态层。这把产品级控制缺陷重新解释成了用户不够熟练。</p> <p>但当用户为了让 agent 正常工作，必须亲自实现 memory system、orchestration policy、compaction protocol、claim-resolution workflow、reframing skill 和 document-gardening process，这已经不叫 customization，这是用户在无薪补产品。</p> <h3 id="44-这份工作到底有多重">4.4 这份工作到底有多重</h3> <p>OpenAI 的 harness-engineering 文章描述了一个完全 agent-first 的开发团队。在那个项目里人类不直接写代码，工程师的主要工作转向构建 scaffolding、提供工具、让 UI 和 logs 和 metrics 对 agent 可读、设计文档结构、维护 repository knowledge、提升 agent legibility。文章直接说团队的主要工作变成了”使 agent 能够做有用工作”，而随着代码吞吐提高，人类 QA capacity 成为新的瓶颈。</p> <p>对一个专门建设 agent-first 基础设施的团队来说，这是合理的。但个人开发者并没有签约成为 Codex 平台工程师。如果一个普通用户为了完成自己的软件、论文或研究项目，也必须承担同样的 scaffolding、memory governance、agent legibility、doc gardening、workflow engineering 和 QA orchestration，那么产品实际上是在要求每个客户建立一支缩小版的 agent-infrastructure team。这正是问题最恶毒的地方：它把一种本应由产品团队承担的系统工程工作，分散给了每一个终端用户。</p> <hr/> <h2 id="五逆向人月神话形式化被隐藏的人类工作">五、逆向”人月神话”：形式化被隐藏的人类工作</h2> <p>经典《人月神话》指出，增加更多工程师不会线性提高软件产量，因为任务分解、沟通和协调成本会增长。Coding agent 里出现了一个逆向版本：机器执行能力可以廉价扩展，但 specification、verification、integration、reframing、memory governance 和 ownership 仍然集中在人类这一串行节点上。</p> <p>可以把有效产出写成：</p> \[V_{\text{useful}} = \min\left(E_M,\ S_H,\ V_H,\ I_H,\ R_H,\ M_H,\ O_H\right)\] <p>其中 $E_M$ 是模型执行吞吐，$S_H$、$V_H$、$I_H$、$R_H$、$M_H$、$O_H$ 分别对应人类定义 specification、进行 semantic verification、整合改动、重新定义问题、治理项目 memory，以及理解并承担 ownership 的能力。</p> <p>Codex/Sol 可以极大提高 $E_M$。但如果它同时增加了后六项的用户负担，更多模型产出不会线性转化成更多有用软件，只会增加 review backlog、assumption debt、integration debt、memory debt、ownership gap、未被理解的代码量和用户控制劳动。</p> <p>更完整的总成本应该写成：</p> \[C_{\text{total}} = C_{\text{tokens}} + C_{\text{runtime}} + C_{\text{human control}} + C_{\text{memory governance}} + C_{\text{recovery}} + C_{\text{rework}}\] <p>而不是只算 API token 和 agent wall time。真正应该优化的指标也不是每小时生成多少代码，而是：</p> \[\text{Human-attention leverage} = \frac{\text{validated, understood, accepted change}}{\text{human epistemic attention}}\] <p>这里三个限定词缺一不可。validated 不只是生成出来或测试通过；understood 是用户能够接管关键 invariant；accepted 是结果真正符合用户目标。</p> <h3 id="51-真正的-agent-benchmark-还缺什么">5.1 真正的 agent benchmark 还缺什么</h3> <p>一个有意义的 coding-agent 评估，至少还应该测量以下内容。</p> <p><strong>长期状态：</strong> compaction 后是否保存当前 checkpoint；是否重复已完成工作；unresolved 与 superseded state 能否存活；多轮之后还能否解释关键决策为何成立。</p> <p><strong>Memory lifecycle：</strong> 用户能否检查 memory；是否支持 update、delete、supersede 和 expiry；新旧 memory 冲突时谁优先；项目 scope 是否明确；memory 是否逐渐膨胀；用户每周需要花多少时间 pruning。</p> <p><strong>编排质量：</strong> subagent 是否真正提高搜索 diversity；新发现能否修改 task graph；主 agent 是不是只在增加 review 和 tests；编排是否降低了用户监督负担。</p> <p><strong>Story-level correctness：</strong> 当前实现是否开始覆盖原始目标；agent 能否识别 specification 已经不成立；anomaly 能否触发 reframing，而不只是局部 patch。</p> <p><strong>Closure quality：</strong> 系统是否保留 inconclusive；是否把 topic-level textual witness 当成 claim-level evidence；用户是否真正确认结果可接受。</p> <p><strong>人类劳动：</strong> 用户需要多少次 steering；花多少时间管理状态、规则和 subagent；花多少时间清理 memory；能否在 agent 离开后接管项目；每项 accepted change 消耗多少人类高质量注意力。</p> <hr/> <h2 id="六结论">六、结论</h2> <p>Codex 和 GPT-5.6 Sol 可以是一台非常强的执行机器，公开 benchmark 清楚证明了这一点。但如果一个号称自主 coding agent 的产品，要求用户持续充当 orchestrator、memory janitor、compaction engineer 和 instruction lawyer，那么它没有真正替用户承担完整的工作，只是自动化了最容易展示和计量的执行部分，把最贵也最不可扩展的控制劳动留给了用户。</p> <p>所以”Claude Code 在替我工作，Codex 在逼我学习如何管理 Codex”这句粗暴的体验判断，不只是情绪化的产品偏好。它指出了 coding-agent benchmark 长期漏算的核心变量：为了让 agent 看起来自主，用户究竟无薪承担了多少使它能够自主的工作。项目记忆问题让这个变量变得尤其具体。Codex 不只是把项目管理退还给用户，它还把项目记忆系统最困难的部分，也就是更新、失效、冲突解决、删除与定期清理，包装成了用户应该自行承担的文档卫生。</p> <p>社区案例无法告诉我们这些故障的总体发生率，GitHub issue 和 Reddit 故事也都存在明显的选择偏差。我自己这部分同样不干净：这里面有多少是 Codex 的产品选择，有多少是我写 prompt、堆规则和不肯早点 steer 的习惯，我到现在没完全分清。而且 2.3 里那些 memory 生命周期问题，我不确定有多少是当前这代产品可以真正解决的，有多少是自然语言记忆本身的难题。</p> <p>但有七条线索指向同一个机制：长期的个人对照体验，官方承认大 <code class="language-plaintext highlighter-rouge">AGENTS.md</code> 方案失败，Local Memories 被定位成 generated state，compaction 后重复工作的 GitHub issue，<code class="language-plaintext highlighter-rouge">PATCH current_tree</code> 这样的 goal takeover 案例，社区对 stale memory、人工 pruning 和 parent babysitting 的反馈，以及 benchmark 里强执行与低用户确认成功率的分裂。凑到一起，它就不再是一组零散抱怨，而是产品架构和评测方法上的结构性问题：机器劳动可以迅速扩展，但我们仍在把维持机器劳动有效性的控制、记忆与判断工作，悄悄记在用户头上。</p>]]></content><author><name></name></author><category term="blog"/><category term="coding-agent"/><category term="harness-engineering"/><summary type="html"><![CDATA[从 Codex 与 Claude Code 的差异，谈被 benchmark 漏算的人类工作]]></summary></entry></feed>
+</code></pre></div></div> <p>这也是我认为 Codex 的 skill 里应该少放全局规则、多放阶段化 workflow 的原因。它对程序的字面服从可以被利用，但对大量抽象规则的字面服从，最终只会加剧规则堆积。</p> <hr/> <h3 id="27-规则堆积用户--instruction-lawyer">2.7 规则堆积：用户 = instruction lawyer</h3> <p>为了修复长期状态不稳定、编排退化、局部故事俘获和过早闭合，用户会不断增加规则：必须使用 subagent、subagent 只能做独立闭合任务、不返回原始上下文、只返回摘要、不得过早下结论、必须保持 claim 粒度、必须保留 unresolved、必须允许修改 spec、必须删除过期 memory、不得只 append。</p> <p>但 Codex 的指令遵循往往非常字面。一条为了阻止某类事故而写的规则，可能在完全无关的阶段被机械执行。模型会在 reasoning 中明确地说：”这一轮不做 X，不做 Y，不做 Z，因此只执行机械性的 A。”于是用户不得不继续给规则增加 scope、exception、phase、exit condition、escalation condition。<code class="language-plaintext highlighter-rouge">AGENTS.md</code> 与 skill 最终不再是一组高层协作原则，而逐渐变成一部不断打补丁的程序法典。</p> <p>这也是为什么 naive compaction skill 可能比原生压缩更差。它通常会把项目历史总结成当前目标、已完成内容、下一步和关键结论，但最容易被删掉的恰恰是：为什么放弃某条路径、哪些结论仍不确定、claim scope 如何变化、哪些 anomaly 尚未解释、哪些旧规则已经失效。同一个已经具有特定偏置的模型，给自己的偏置状态再写一次摘要，并不会自动获得独立性。</p> <p>最终产生的是：</p> \[\text{规则越多} \rightarrow \text{上下文越重} \rightarrow \text{压缩越频繁} \rightarrow \text{行为越机械} \rightarrow \text{用户继续补规则}\] <hr/> <h3 id="28-高延迟昂贵的用户控制">2.8 高延迟：昂贵的用户控制</h3> <p>延迟不只是一个 UX 缺点，它会改变用户的整个控制策略。当一次 steer 很昂贵时，用户会倾向于一次性交代更大任务、写更长 prompt、让 agent 自主跑更久、减少中间检查、在 <code class="language-plaintext highlighter-rouge">AGENTS.md</code> 里预先加入更多规则、让主 agent 承担更多 orchestration。于是出现另一个循环：</p> \[\text{高延迟} \rightarrow \text{更大任务批次} \rightarrow \text{更多上下文} \rightarrow \text{更多 compaction} \rightarrow \text{更多 drift} \rightarrow \text{更多规则}\] <p>所以响应速度的真正意义不是让人少等几十秒，而是决定人机控制回路能够多高频地运行。低成本、高频率的 steering 可以在 story 刚开始漂移时纠正它；低频 steering 则迫使用户在任务开始前写更多规则，并在任务结束后承担更大的 recovery 和 rework。</p> <hr/> <h2 id="三benchmark--arena强执行分数可以和差产品体验并存">三、Benchmark &amp; Arena：强执行分数可以和差产品体验并存</h2> <p>Artificial Analysis 当前把 Claude Code + Opus 5 xHigh 和 Codex + Sol Max 都评为 67，但内部结构不同。Sol/Codex 在 DeepSWE 拿到 69%、Terminal-Bench v2 拿到 88%；Opus/Claude Code 在 SWE-Atlas-QnA 拿到 55%，高于 Sol/Codex 的 43%；Codex 平均每任务更快、更便宜、用更少 token。</p> <p>这个 split 和本文讨论的差异高度一致。Sol/Codex 更强的部分主要是标准化 issue resolution、terminal execution、patch，以及测试和命令驱动的验证回路。Opus/Claude Code 更强的部分更接近跨模块代码库理解、长上下文中的关系恢复、situated repository reasoning。综合分数把两种完全不同的 agent disposition 压成了一个数字。</p> <p>更重要的是，这类 benchmark 预先给定：问题定义已经正确，任务边界固定，成功标准可执行，环境不需要真实用户回答，closure condition 也相对明确。它们主要测量：</p> \[\text{在正确 map 内完成任务的能力}\] <p>而不是：</p> \[\text{发现 map 错了并重写任务的能力}\] <p>Agent Arena 则显示了另一个有意义的分裂。截至 2026 年 8 月 5 日，Opus 5 High 的 Confirmed Success 为 16.42%，GPT-5.6 Sol xHigh 为 8.97%，也就是说 Opus 5 让用户明确确认任务完成的比例约为 Sol 的 1.83 倍。但两者在 Praise vs Complaint 上是 21.37% 对 21.32%，Steerability 是 9.08% 对 9.28%，几乎相同。</p> <p>这说明差距不能简单解释成用户更喜欢 Claude 的语气、或者 Claude 用户更容易夸模型。更合理的解释是 Sol 可以完成大量局部、可见、可审计、同时模型自认为有意义的工作，但这些工作更少转化成用户最终认可的 closure。</p> <p>而且 Artificial Analysis 明确说明其 Cost per Task 只统计 pay-per-token API 成本，不包括 infrastructure、engineering 和 supervision；Time per Task 也不包括 verifier、judge 和其他 harness overhead。换句话说，benchmark 中默认：</p> \[C_{\text{human control}} = 0\] <p>无论用户实际花了多少时间恢复状态、拆解任务、管理 subagent、清理 memory、修正 compaction、纠正局部故事俘获、阻止过早闭合、维护 <code class="language-plaintext highlighter-rouge">AGENTS.md</code> 和 skills，这些劳动都不会被计入 Codex 的成本。所以”Codex benchmark 更高、更快、更便宜”和”Codex 在真实长程工作中的总拥有成本更高”同时成立。</p> <p>一项对 Claude Code 和 Codex 执行相同科学计算任务的研究也观察到了不同 disposition：Claude Code 更快、更自主，但会静默偏离或重新解释 specification；Codex 更慢、更字面，并通过显式重启进行自我纠正。两者最后都完成任务，但在速度、可审计性和 instruction interpretation 上差异明显。</p> <p>这说明 Claude Code 也并非没有风险。Claude 的风险是自主性越权，Codex 的风险是把意图判断、状态控制、知识治理和工作编排大量退还给用户。</p> <hr/> <h2 id="四这个问题为什么恶毒">四、这个问题为什么恶毒</h2> <p>不只是因为管理 agent 很累。恶毒的地方在于，产品把用户最宝贵的职业时间重新分类成了”使用工具的摩擦”。</p> <p>用户原本的本职工作可能是提出研究问题、判断产品方向、设计系统、建立理论、完成创造性实现、解释实验结果。用了 agent 之后，可能有大量时间花在判断模型又忘了什么、决定是否该开 subagent、设计 subagent 的任务边界和返回格式、清理过时规则、修复 memory 漂移、判断它是不是正在维护错误 story、阻止错误 completion、为它编写更多 skills、重新启动一个 fresh context 做 reframing。这些不是原工作中的自然子任务，而是管理工具本身的持续劳动。</p> <h3 id="41-它消耗的是最高价值的人类注意力">4.1 它消耗的是最高价值的人类注意力</h3> <p>模型承担的是相对容易并行的执行，用户承担的却是 specification、semantic verification、architecture judgment、anomaly interpretation、reframing、memory lifecycle 和 closure authority。这恰恰是最昂贵、最难并行、最不能被频繁打断的人类工作。</p> <p>项目记忆问题尤其说明这一点。用户不是偶尔清理一个文件，而是在持续决定什么值得记、应该记多细、哪些 memory 已过期、哪些应该提升成正式规则、哪些应该删除、哪些冲突需要裁决、哪一个文件才是 source of truth。这是一整套知识库管理工作。</p> <h3 id="42-它在产品指标中不可见">4.2 它在产品指标中不可见</h3> <p>模型写出的 patch 被统计成模型产出，用户维护 agent 的时间却没有任何计量。于是：</p> \[\text{reported productivity} = \text{machine output} + 0 \times \text{human management work}\] <p>一个产品可以在 benchmark 中显得更快、更便宜，同时在现实中占掉用户整个工作日。</p> <h3 id="43-它会伪装成用户能力问题">4.3 它会伪装成用户能力问题</h3> <p>当系统表现不好时，最方便的解释是你没有写好 <code class="language-plaintext highlighter-rouge">AGENTS.md</code>、没有正确使用 subagent、skill 不够完善、prompt 粒度不对、没有定期清理 memory、没有搭建外部状态层。这把产品级控制缺陷重新解释成了用户不够熟练。</p> <p>但当用户为了让 agent 正常工作，必须亲自实现 memory system、orchestration policy、compaction protocol、claim-resolution workflow、reframing skill 和 document-gardening process，这已经不叫 customization，这是用户在无薪补产品。</p> <h3 id="44-这份工作到底有多重">4.4 这份工作到底有多重</h3> <p>OpenAI 的 harness-engineering 文章描述了一个完全 agent-first 的开发团队。在那个项目里人类不直接写代码，工程师的主要工作转向构建 scaffolding、提供工具、让 UI 和 logs 和 metrics 对 agent 可读、设计文档结构、维护 repository knowledge、提升 agent legibility。文章直接说团队的主要工作变成了”使 agent 能够做有用工作”，而随着代码吞吐提高，人类 QA capacity 成为新的瓶颈。</p> <p>对一个专门建设 agent-first 基础设施的团队来说，这是合理的。但个人开发者并没有签约成为 Codex 平台工程师。如果一个普通用户为了完成自己的软件、论文或研究项目，也必须承担同样的 scaffolding、memory governance、agent legibility、doc gardening、workflow engineering 和 QA orchestration，那么产品实际上是在要求每个客户建立一支缩小版的 agent-infrastructure team。这正是问题最恶毒的地方：它把一种本应由产品团队承担的系统工程工作，分散给了每一个终端用户。</p> <hr/> <h2 id="五逆向人月神话形式化被隐藏的人类工作">五、逆向”人月神话”：形式化被隐藏的人类工作</h2> <p>经典《人月神话》指出，增加更多工程师不会线性提高软件产量，因为任务分解、沟通和协调成本会增长。Coding agent 里出现了一个逆向版本：机器执行能力可以廉价扩展，但 specification、verification、integration、reframing、memory governance 和 ownership 仍然集中在人类这一串行节点上。</p> <p>可以把有效产出写成：</p> \[V_{\text{useful}} = \min\left(E_M,\ S_H,\ V_H,\ I_H,\ R_H,\ M_H,\ O_H\right)\] <p>其中 $E_M$ 是模型执行吞吐，$S_H$、$V_H$、$I_H$、$R_H$、$M_H$、$O_H$ 分别对应人类定义 specification、进行 semantic verification、整合改动、重新定义问题、治理项目 memory，以及理解并承担 ownership 的能力。</p> <p>Codex/Sol 可以极大提高 $E_M$。但如果它同时增加了后六项的用户负担，更多模型产出不会线性转化成更多有用软件，只会增加 review backlog、assumption debt、integration debt、memory debt、ownership gap、未被理解的代码量和用户控制劳动。</p> <p>更完整的总成本应该写成：</p> \[C_{\text{total}} = C_{\text{tokens}} + C_{\text{runtime}} + C_{\text{human control}} + C_{\text{memory governance}} + C_{\text{recovery}} + C_{\text{rework}}\] <p>而不是只算 API token 和 agent wall time。真正应该优化的指标也不是每小时生成多少代码，而是：</p> \[\text{Human-attention leverage} = \frac{\text{validated, understood, accepted change}}{\text{human epistemic attention}}\] <p>这里三个限定词缺一不可。validated 不只是生成出来或测试通过；understood 是用户能够接管关键 invariant；accepted 是结果真正符合用户目标。</p> <h3 id="51-真正的-agent-benchmark-还缺什么">5.1 真正的 agent benchmark 还缺什么</h3> <p>一个有意义的 coding-agent 评估，至少还应该测量以下内容。</p> <p><strong>长期状态：</strong> compaction 后是否保存当前 checkpoint；是否重复已完成工作；unresolved 与 superseded state 能否存活；多轮之后还能否解释关键决策为何成立。</p> <p><strong>Memory lifecycle：</strong> 用户能否检查 memory；是否支持 update、delete、supersede 和 expiry；新旧 memory 冲突时谁优先；项目 scope 是否明确；memory 是否逐渐膨胀；用户每周需要花多少时间 pruning。</p> <p><strong>编排质量：</strong> subagent 是否真正提高搜索 diversity；新发现能否修改 task graph；主 agent 是不是只在增加 review 和 tests；编排是否降低了用户监督负担。</p> <p><strong>Story-level correctness：</strong> 当前实现是否开始覆盖原始目标；agent 能否识别 specification 已经不成立；anomaly 能否触发 reframing，而不只是局部 patch。</p> <p><strong>Closure quality：</strong> 系统是否保留 inconclusive；是否把 topic-level textual witness 当成 claim-level evidence；用户是否真正确认结果可接受。</p> <p><strong>人类劳动：</strong> 用户需要多少次 steering；花多少时间管理状态、规则和 subagent；花多少时间清理 memory；能否在 agent 离开后接管项目；每项 accepted change 消耗多少人类高质量注意力。</p> <hr/> <h2 id="六结论">六、结论</h2> <p>Codex 和 GPT-5.6 Sol 可以是一台非常强的执行机器，公开 benchmark 清楚证明了这一点。但如果一个号称自主 coding agent 的产品，要求用户持续充当 orchestrator、memory janitor、compaction engineer 和 instruction lawyer，那么它没有真正替用户承担完整的工作，只是自动化了最容易展示和计量的执行部分，把最贵也最不可扩展的控制劳动留给了用户。</p> <p>所以”Claude Code 在替我工作，Codex 在逼我学习如何管理 Codex”这句粗暴的体验判断，不只是情绪化的产品偏好。它指出了 coding-agent benchmark 长期漏算的核心变量：为了让 agent 看起来自主，用户究竟无薪承担了多少使它能够自主的工作。项目记忆问题让这个变量变得尤其具体。Codex 不只是把项目管理退还给用户，它还把项目记忆系统最困难的部分，也就是更新、失效、冲突解决、删除与定期清理，包装成了用户应该自行承担的文档卫生。</p> <p>社区案例无法告诉我们这些故障的总体发生率，GitHub issue 和 Reddit 故事也都存在明显的选择偏差。我自己这部分同样不干净：这里面有多少是 Codex 的产品选择，有多少是我写 prompt、堆规则和不肯早点 steer 的习惯，我到现在没完全分清。而且 2.3 里那些 memory 生命周期问题，我不确定有多少是当前这代产品可以真正解决的，有多少是自然语言记忆本身的难题。</p> <p>但有七条线索指向同一个机制：长期的个人对照体验，官方承认大 <code class="language-plaintext highlighter-rouge">AGENTS.md</code> 方案失败，Local Memories 被定位成 generated state，compaction 后重复工作的 GitHub issue，<code class="language-plaintext highlighter-rouge">PATCH current_tree</code> 这样的 goal takeover 案例，社区对 stale memory、人工 pruning 和 parent babysitting 的反馈，以及 benchmark 里强执行与低用户确认成功率的分裂。凑到一起，它就不再是一组零散抱怨，而是产品架构和评测方法上的结构性问题：机器劳动可以迅速扩展，但我们仍在把维持机器劳动有效性的控制、记忆与判断工作，悄悄记在用户头上。</p>]]></content><author><name></name></author><category term="blog"/><category term="coding-agent"/><category term="harness-engineering"/><summary type="html"><![CDATA[从 Codex 与 Claude Code 的差异，谈被 benchmark 漏算的人类工作]]></summary></entry><entry><title type="html">a post with marimo snippets</title><link href="https://hzeristo.github.io/hzeristo-page/blog/2025/marimo/" rel="alternate" type="text/html" title="a post with marimo snippets"/><published>2025-04-28T12:00:00+00:00</published><updated>2025-04-28T12:00:00+00:00</updated><id>https://hzeristo.github.io/hzeristo-page/blog/2025/marimo</id><content type="html" xml:base="https://hzeristo.github.io/hzeristo-page/blog/2025/marimo/"><![CDATA[<p><a href="https://marimo.io">marimo</a> notebooks can run Python directly in the reader’s browser. Opt a page in from its front matter:</p> <div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nn">---</span>
+<span class="na">layout</span><span class="pi">:</span> <span class="s">post</span>
+<span class="na">title</span><span class="pi">:</span> <span class="s">a post with marimo snippets</span>
+<span class="na">marimo</span><span class="pi">:</span> <span class="kc">true</span>
+<span class="nn">---</span>
+</code></pre></div></div> <p>Nothing is loaded on pages without that flag, so bundling the plugin costs nothing site-wide.</p> <h2 id="runnable-snippets">Runnable snippets</h2> <p>Wrap fenced Python blocks in a container and the runtime turns them into an interactive notebook after the page loads:</p> <div class="al-marimo-inline"> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="n">marimo</span> <span class="k">as</span> <span class="n">mo</span>
+
+<span class="n">slider</span> <span class="o">=</span> <span class="n">mo</span><span class="p">.</span><span class="n">ui</span><span class="p">.</span><span class="nf">slider</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sh">"</span><span class="s">n</span><span class="sh">"</span><span class="p">)</span>
+<span class="n">slider</span>
+</code></pre></div> </div> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">mo</span><span class="p">.</span><span class="nf">md</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">The first </span><span class="si">{</span><span class="n">slider</span><span class="p">.</span><span class="n">value</span><span class="si">}</span><span class="s"> squares: </span><span class="si">{</span><span class="p">[</span><span class="n">i</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">slider</span><span class="p">.</span><span class="n">value</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+</code></pre></div> </div> </div> <p>Until the runtime has moved those blocks into place the container stays hidden, so readers never see the raw source flash before it becomes a notebook.</p> <h2 id="embedding-a-hosted-notebook">Embedding a hosted notebook</h2> <p>If you already publish a notebook — on <code class="language-plaintext highlighter-rouge">marimo.app</code> or your own WASM host — embed it instead:</p> <div class="language-liquid highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">{%</span><span class="w"> </span><span class="nt">al_marimo_embed</span><span class="w"> </span><span class="na">src</span><span class="o">=</span><span class="s2">"https://marimo.app/l/your-notebook"</span><span class="w"> </span><span class="na">height</span><span class="o">=</span><span class="s2">"700px"</span><span class="w"> </span><span class="na">caption</span><span class="o">=</span><span class="s2">"Sampling demo"</span><span class="w"> </span><span class="cp">%}</span>
+</code></pre></div></div> <p>The frame is sandboxed <strong>without</strong> <code class="language-plaintext highlighter-rouge">allow-same-origin</code>, so the embedded notebook cannot reach this page’s storage or cookies.</p> <h2 id="a-note-on-what-this-loads">A note on what this loads</h2> <p>The <code class="language-plaintext highlighter-rouge">marimo-snippets</code> runtime is vendored into the plugin at a pinned version and served from your own site, rather than pulled from a CDN — so no third-party origin executes script in your readers’ pages. Running a notebook does contact marimo’s host, which is worth knowing before you opt a page in.</p>]]></content><author><name></name></author><category term="sample-posts"/><category term="code"/><category term="formatting"/><summary type="html"><![CDATA[running Python in the browser with marimo]]></summary></entry><entry><title type="html">a post with giscus comments</title><link href="https://hzeristo.github.io/hzeristo-page/blog/2022/giscus-comments/" rel="alternate" type="text/html" title="a post with giscus comments"/><published>2022-12-10T15:59:00+00:00</published><updated>2022-12-10T15:59:00+00:00</updated><id>https://hzeristo.github.io/hzeristo-page/blog/2022/giscus-comments</id><content type="html" xml:base="https://hzeristo.github.io/hzeristo-page/blog/2022/giscus-comments/"><![CDATA[<p>This post shows how to add GISCUS comments.</p>]]></content><author><name></name></author><category term="sample-posts"/><category term="external-services"/><category term="comments"/><summary type="html"><![CDATA[an example of a blog post with giscus comments]]></summary></entry><entry xml:lang="fa"><title type="html">یک نوشتهٔ راست‌چین</title><link href="https://hzeristo.github.io/hzeristo-page/blog/2022/rtl/" rel="alternate" type="text/html" title="یک نوشتهٔ راست‌چین"/><published>2022-10-15T10:00:00+00:00</published><updated>2022-10-15T10:00:00+00:00</updated><id>https://hzeristo.github.io/hzeristo-page/blog/2022/rtl</id><content type="html" xml:base="https://hzeristo.github.io/hzeristo-page/blog/2022/rtl/"><![CDATA[<p>این نوشته نمونه‌ای از پشتیبانی زبان‌های راست‌چین در al-folio است. کافی است در front matter صفحه، <code class="language-plaintext highlighter-rouge">lang</code> را روی یکی از زبان‌های راست‌چین بگذارید:</p> <div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nn">---</span>
+<span class="na">layout</span><span class="pi">:</span> <span class="s">post</span>
+<span class="na">title</span><span class="pi">:</span> <span class="s">عنوان نوشته</span>
+<span class="na">lang</span><span class="pi">:</span> <span class="s">fa</span>
+<span class="nn">---</span>
+</code></pre></div></div> <p>افزونهٔ <code class="language-plaintext highlighter-rouge">al_rtl</code> صفت <code class="language-plaintext highlighter-rouge">dir="rtl"</code> را روی عنصر <code class="language-plaintext highlighter-rouge">&lt;html&gt;</code> قرار می‌دهد. چون این صفت روی ریشهٔ سند است، نوار ناوبری، پاورقی و جای نوار پیمایش هم درست می‌شوند — نه فقط متن اصلی.</p> <p>زبان‌های شناخته‌شده به‌صورت پیش‌فرض: عربی، عبری، فارسی، اردو، پشتو، کردی، سندی، اویغوری، دیوهی و چند زبان دیگر. برای تغییر این فهرست:</p> <div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">al_rtl</span><span class="pi">:</span>
+  <span class="na">langs</span><span class="pi">:</span> <span class="pi">[</span><span class="nv">fa</span><span class="pi">,</span> <span class="nv">ar</span><span class="pi">]</span>
+</code></pre></div></div> <h2 id="کد-و-ریاضیات-چپچین-میمانند">کد و ریاضیات چپ‌چین می‌مانند</h2> <p>کد و فرمول‌ها بدون توجه به زبان متن، چپ‌چین باقی می‌مانند. اگر جهت آن‌ها راست‌چین می‌شد، ترتیب عملگرها و نقطه‌گذاری به‌هم می‌ریخت:</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">normalize</span><span class="p">(</span><span class="n">code</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">code</span><span class="p">.</span><span class="nf">strip</span><span class="p">().</span><span class="nf">lower</span><span class="p">().</span><span class="nf">split</span><span class="p">(</span><span class="sh">"</span><span class="s">-</span><span class="sh">"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</code></pre></div></div> <p>فرمول‌ها هم همین‌طور: \(E = mc^2\) و در حالت نمایشی:</p> \[\left( \sum_{k=1}^n a_k b_k \right)^2 \leq \left( \sum_{k=1}^n a_k^2 \right) \left( \sum_{k=1}^n b_k^2 \right)\] <p>متن انگلیسی درون یک جملهٔ فارسی، مثل The quick brown fox، به‌درستی نمایش داده می‌شود، چون مرورگر خودش الگوریتم دوجهته را اعمال می‌کند.</p>]]></content><author><name></name></author><category term="sample-posts"/><category term="internationalization"/><category term="formatting"/><summary type="html"><![CDATA[نمونه‌ای از پشتیبانی زبان‌های راست‌چین]]></summary></entry><entry><title type="html">a distill-style blog post</title><link href="https://hzeristo.github.io/hzeristo-page/blog/2021/distill/" rel="alternate" type="text/html" title="a distill-style blog post"/><published>2021-05-22T00:00:00+00:00</published><updated>2021-05-22T00:00:00+00:00</updated><id>https://hzeristo.github.io/hzeristo-page/blog/2021/distill</id><content type="html" xml:base="https://hzeristo.github.io/hzeristo-page/blog/2021/distill/"><![CDATA[<h2 id="equations">Equations</h2> <p>This theme supports rendering beautiful math in inline and display modes using <a href="https://www.mathjax.org/">MathJax 3</a> engine. You just need to surround your math expression with <code class="language-plaintext highlighter-rouge">$$</code>, like <code class="language-plaintext highlighter-rouge">$$ E = mc^2 $$</code>. If you leave it inside a paragraph, it will produce an inline expression, just like \(E = mc^2\).</p> <p>In fact, you can also use a single dollar sign <code class="language-plaintext highlighter-rouge">$</code> to create inline formulas, such as <code class="language-plaintext highlighter-rouge">$ E = mc^2 $</code>, which will render as $ E = mc^2 $. This approach provides the same effect during TeX-based compilation, but visually it appears slightly less bold compared to double-dollar signs <code class="language-plaintext highlighter-rouge">$$</code>, making it blend more naturally with surrounding text.</p> <p>To use display mode, again surround your expression with <code class="language-plaintext highlighter-rouge">$$</code> and place it as a separate paragraph. Here is an example:</p> \[\left( \sum_{k=1}^n a_k b_k \right)^2 \leq \left( \sum_{k=1}^n a_k^2 \right) \left( \sum_{k=1}^n b_k^2 \right)\] <p>Note that MathJax 3 is <a href="https://docs.mathjax.org/en/latest/upgrading/whats-new-3.0.html">a major re-write of MathJax</a> that brought a significant improvement to the loading and rendering speed.</p> <hr/> <h2 id="citations">Citations</h2> <p>Citations are then used in the article body with the <code class="language-plaintext highlighter-rouge">&lt;d-cite&gt;</code> tag. The key attribute is a reference to the id provided in the bibliography. The key attribute can take multiple ids, separated by commas.</p> <p>The citation is presented inline like this: <d-cite key="gregor2015draw"></d-cite> (a number that displays more information on hover). If you have an appendix, a bibliography is automatically created and populated in it.</p> <p>Distill chose a numerical inline citation style to improve readability of citation dense articles and because many of the benefits of longer citations are obviated by displaying more information on hover. However, we consider it good style to mention author last names if you discuss something at length and it fits into the flow well — the authors are human and it’s nice for them to have the community associate them with their work.</p> <hr/> <h2 id="footnotes">Footnotes</h2> <p>Just wrap the text you would like to show up in a footnote in a <code class="language-plaintext highlighter-rouge">&lt;d-footnote&gt;</code> tag. The number of the footnote will be automatically generated.<d-footnote>This will become a hoverable footnote.</d-footnote></p> <hr/> <h2 id="code-blocks">Code Blocks</h2> <p>Syntax highlighting is provided within <code class="language-plaintext highlighter-rouge">&lt;d-code&gt;</code> tags. An example of inline code snippets: <code class="language-plaintext highlighter-rouge">&lt;d-code language="html"&gt;let x = 10;&lt;/d-code&gt;</code>. For larger blocks of code, add a <code class="language-plaintext highlighter-rouge">block</code> attribute:</p> <d-code block="" language="javascript"> var x = 25; function(x) { return x * x; } </d-code> <p><strong>Note:</strong> <code class="language-plaintext highlighter-rouge">&lt;d-code&gt;</code> blocks do not look good in the dark mode. You can instead use the standard Jekyll syntax highlight with the <code class="language-plaintext highlighter-rouge">highlight</code> liquid tag.</p> <figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">x</span> <span class="o">=</span> <span class="mi">25</span><span class="p">;</span>
+<span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
+<span class="k">return</span> <span class="nx">x</span> <span class="err">\</span><span class="o">*</span> <span class="nx">x</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure> <p>You can also write standard Markdown code blocks in triple ticks with a language tag, for instance:</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">foo</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">x</span>
+</code></pre></div></div> <hr/> <h2 id="interactive-plots">Interactive Plots</h2> <p>You can add interative plots using plotly + iframes :framed_picture:</p> <div class="l-page"> <iframe src="/hzeristo-page/assets/plotly/demo.html" frameborder="0" scrolling="no" height="500px" width="100%" style="border: 1px dashed grey;"></iframe> </div> <p>The plot must be generated separately and saved into an HTML file. To generate the plot that you see above, you can use the following code snippet:</p> <figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="n">pandas</span> <span class="k">as</span> <span class="n">pd</span>
+<span class="kn">import</span> <span class="n">plotly.express</span> <span class="k">as</span> <span class="n">px</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="p">.</span><span class="nf">read_csv</span><span class="p">(</span>
+<span class="sh">'</span><span class="s">https://raw.githubusercontent.com/plotly/datasets/master/earthquakes-23k.csv</span><span class="sh">'</span>
+<span class="p">)</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="p">.</span><span class="nf">density_mapbox</span><span class="p">(</span>
+<span class="n">df</span><span class="p">,</span>
+<span class="n">lat</span><span class="o">=</span><span class="sh">'</span><span class="s">Latitude</span><span class="sh">'</span><span class="p">,</span>
+<span class="n">lon</span><span class="o">=</span><span class="sh">'</span><span class="s">Longitude</span><span class="sh">'</span><span class="p">,</span>
+<span class="n">z</span><span class="o">=</span><span class="sh">'</span><span class="s">Magnitude</span><span class="sh">'</span><span class="p">,</span>
+<span class="n">radius</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<span class="n">center</span><span class="o">=</span><span class="nf">dict</span><span class="p">(</span><span class="n">lat</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lon</span><span class="o">=</span><span class="mi">180</span><span class="p">),</span>
+<span class="n">zoom</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<span class="n">mapbox_style</span><span class="o">=</span><span class="sh">"</span><span class="s">carto-positron</span><span class="sh">"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="p">.</span><span class="nf">show</span><span class="p">()</span>
+<span class="n">fig</span><span class="p">.</span><span class="nf">write_html</span><span class="p">(</span><span class="sh">'</span><span class="s">assets/plotly/demo.html</span><span class="sh">'</span><span class="p">)</span></code></pre></figure> <hr/> <h2 id="details-boxes">Details boxes</h2> <p>Details boxes are collapsible boxes which hide additional information from the user. They can be added with the <code class="language-plaintext highlighter-rouge">details</code> liquid tag:</p> <details><summary>Click here to know more</summary> <p>Additional details, where math \(2x - 1\) and <code class="language-plaintext highlighter-rouge">code</code> is rendered correctly.</p> </details> <hr/> <h2 id="mermaid">Mermaid</h2> <p>This theme supports creating diagrams directly in markdown using <a href="https://mermaid.js.org/">Mermaid</a>. Mermaid enables users to render flowcharts, sequence diagrams, class diagrams, Gantt charts, and more. Simply embed the diagram syntax within a mermaid code block.</p> <p>To create a Gantt chart, you can use the following syntax:</p> <div class="language-markdown highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">```</span><span class="nl">mermaid
+</span><span class="sb">gantt
+    dateFormat  YYYY-MM-DD
+    title A Gantt Diagram
+
+    section Section
+    Task A           :a1, 2025-01-01, 30d
+    Task B           :after a1, 20d
+    Task C           :2025-01-10, 12d</span>
+<span class="p">```</span>
+</code></pre></div></div> <p>And here’s how it will be rendered:</p> <pre><code class="language-mermaid">gantt
+    dateFormat  YYYY-MM-DD
+    title A Gantt Diagram
+
+    section Section
+    Task A           :a1, 2025-01-01, 30d
+    Task B           :after a1, 20d
+    Task C           :2025-01-10, 12d
+</code></pre> <p>Similarly, you can also use it to create beautiful class diagrams:</p> <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>```mermaid
+classDiagram
+direction LR
+    class Animal {
+        +String species
+        +int age
+        +makeSound()
+    }
+    class Dog {
+        +String breed
+        +bark()
+    }
+    class Cat {
+        +String color
+        +meow()
+    }
+    class Bird {
+        +String wingSpan
+        +fly()
+    }
+    class Owner {
+        +String name
+        +int age
+        +adoptAnimal(Animal animal)
+    }
+
+    Animal &lt;|-- Dog
+    Animal &lt;|-- Cat
+    Animal &lt;|-- Bird
+    Owner "1" --&gt; "0..*" Animal
+
+    Dog : +fetch()
+    Cat : +purr()
+    Bird : +sing()
+```
+</code></pre></div></div> <p>It will be presented as:</p> <pre><code class="language-mermaid">classDiagram
+direction LR
+    class Animal {
+        +String species
+        +int age
+        +makeSound()
+    }
+    class Dog {
+        +String breed
+        +bark()
+    }
+    class Cat {
+        +String color
+        +meow()
+    }
+    class Bird {
+        +String wingSpan
+        +fly()
+    }
+    class Owner {
+        +String name
+        +int age
+        +adoptAnimal(Animal animal)
+    }
+
+    Animal &lt;|-- Dog
+    Animal &lt;|-- Cat
+    Animal &lt;|-- Bird
+    Owner "1" --&gt; "0..*" Animal
+
+    Dog : +fetch()
+    Cat : +purr()
+    Bird : +sing()
+</code></pre> <p>With Mermaid, you can easily add clear and dynamic diagrams to enhance your blog content.</p> <hr/> <h2 id="diff2html">Diff2Html</h2> <p>This theme also supports integrating <a href="https://github.com/rtfpessoa/diff2html">Diff2Html</a>, a tool that beautifully renders code differences (diffs) directly in markdown. Diff2Html is ideal for showcasing code changes, allowing you to clearly present additions, deletions, and modifications. It’s perfect for code reviews, documentation, and tutorials where step-by-step code changes need to be highlighted—you can even introduce changes across multiple files at once.</p> <div class="language-markdown highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">```</span><span class="nl">diff2html
+</span><span class="sb">diff --git a/utils/mathUtils.js b/utils/mathUtils.js
+index 3b5f3d1..c7f9b2e 100644
+--- a/utils/mathUtils.js
++++ b/utils/mathUtils.js
+@@ -1,8 +1,12 @@
+-// Basic math utilities
++// Extended math utilities with additional functions
+
+-export function calculateArea(radius) {
+-    const PI = 3.14159;
++export function calculateCircleMetrics(radius) {
++    const PI = Math.PI;
+     const area = PI * radius ** 2;
++    const circumference = 2 * PI * radius;
++
++    if (!isValidRadius(radius)) throw new Error("Invalid radius");
++
+     return { area, circumference };
+ }
+
+-export function validateRadius(radius) {
++export function isValidRadius(radius) {
+     return typeof radius === 'number' &amp;&amp; radius &gt; 0;
+ }
+
+diff --git a/main.js b/main.js
+index 5f6a9c3..b7d4e8f 100644
+--- a/main.js
++++ b/main.js
+@@ -2,9 +2,12 @@
+ import { calculateCircleMetrics } from './utils/mathUtils';
+
+-function displayCircleMetrics(radius) {
+-    const { area } = calculateCircleMetrics(radius);
++function displayCircleMetrics(radius) {
++    const { area, circumference } = calculateCircleMetrics(radius);
+     console.log(`Area: ${area}`);
++    console.log(`Circumference: ${circumference}`);
+ }
+
+-displayCircleMetrics(5);
++try {
++    displayCircleMetrics(5);
++} catch (error) {
++    console.error("Error:", error.message);
++}</span>
+<span class="p">```</span>
+</code></pre></div></div> <p>Here’s how it will look when rendered with Diff2Html:</p> <pre><code class="language-diff2html">diff --git a/utils/mathUtils.js b/utils/mathUtils.js
+index 3b5f3d1..c7f9b2e 100644
+--- a/utils/mathUtils.js
++++ b/utils/mathUtils.js
+@@ -1,8 +1,12 @@
+-// Basic math utilities
++// Extended math utilities with additional functions
+
+-export function calculateArea(radius) {
+-    const PI = 3.14159;
++export function calculateCircleMetrics(radius) {
++    const PI = Math.PI;
+     const area = PI * radius ** 2;
++    const circumference = 2 * PI * radius;
++
++    if (!isValidRadius(radius)) throw new Error("Invalid radius");
++
+     return { area, circumference };
+ }
+
+-export function validateRadius(radius) {
++export function isValidRadius(radius) {
+     return typeof radius === 'number' &amp;&amp; radius &gt; 0;
+ }
+
+diff --git a/main.js b/main.js
+index 5f6a9c3..b7d4e8f 100644
+--- a/main.js
++++ b/main.js
+@@ -2,9 +2,12 @@
+ import { calculateCircleMetrics } from './utils/mathUtils';
+
+-function displayCircleMetrics(radius) {
+-    const { area } = calculateCircleMetrics(radius);
++function displayCircleMetrics(radius) {
++    const { area, circumference } = calculateCircleMetrics(radius);
+     console.log(`Area: ${area}`);
++    console.log(`Circumference: ${circumference}`);
+ }
+
+-displayCircleMetrics(5);
++try {
++    displayCircleMetrics(5);
++} catch (error) {
++    console.error("Error:", error.message);
++}
+</code></pre> <hr/> <h2 id="leaflet">Leaflet</h2> <p><a href="https://leafletjs.com/">Leaflet</a> is created by Ukrainian software engineer <a href="https://agafonkin.com/">Volodymyr Agafonkin</a>, allowing interactive maps to be embedded in webpages. With support for <a href="https://geojson.org/">GeoJSON data</a>, Leaflet allows you to highlight specific regions, making it easy to visualize geographical information in detail.</p> <p>You can use the following code to load map information on <a href="https://www.openstreetmap.org/">OpenStreetMap</a>:</p> <div class="language-markdown highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">```</span><span class="nl">geojson
+</span><span class="sb">{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Crimea",
+        "popupContent": "Occupied Crimea"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              33.9,
+              45.3
+            ],
+            [
+              36.5,
+              45.3
+            ],
+            [
+              36.5,
+              44.4
+            ],
+            [
+              33.9,
+              44.4
+            ],
+            [
+              33.9,
+              45.3
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Donetsk",
+        "popupContent": "Occupied Donetsk"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              37.5,
+              48.5
+            ],
+            [
+              39.5,
+              48.5
+            ],
+            [
+              39.5,
+              47.5
+            ],
+            [
+              37.5,
+              47.5
+            ],
+            [
+              37.5,
+              48.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Luhansk",
+        "popupContent": "Occupied Luhansk"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              38.5,
+              49.5
+            ],
+            [
+              40.5,
+              49.5
+            ],
+            [
+              40.5,
+              48.5
+            ],
+            [
+              38.5,
+              48.5
+            ],
+            [
+              38.5,
+              49.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Kherson",
+        "popupContent": "Occupied Kherson"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              32.3,
+              47.3
+            ],
+            [
+              34.3,
+              47.3
+            ],
+            [
+              34.3,
+              46.3
+            ],
+            [
+              32.3,
+              46.3
+            ],
+            [
+              32.3,
+              47.3
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Zaporizhzhia",
+        "popupContent": "Occupied Zaporizhzhia"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              34.3,
+              48
+            ],
+            [
+              36.3,
+              48
+            ],
+            [
+              36.3,
+              47
+            ],
+            [
+              34.3,
+              47
+            ],
+            [
+              34.3,
+              48
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}</span>
+<span class="p">```</span>
+</code></pre></div></div> <p>The rendered map below highlights the regions of Ukraine that have been illegally occupied by Russia over the years, including Crimea and the four eastern regions:</p> <pre><code class="language-geojson">{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Crimea",
+        "popupContent": "Occupied Crimea"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              33.9,
+              45.3
+            ],
+            [
+              36.5,
+              45.3
+            ],
+            [
+              36.5,
+              44.4
+            ],
+            [
+              33.9,
+              44.4
+            ],
+            [
+              33.9,
+              45.3
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Donetsk",
+        "popupContent": "Occupied Donetsk"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              37.5,
+              48.5
+            ],
+            [
+              39.5,
+              48.5
+            ],
+            [
+              39.5,
+              47.5
+            ],
+            [
+              37.5,
+              47.5
+            ],
+            [
+              37.5,
+              48.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Luhansk",
+        "popupContent": "Occupied Luhansk"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              38.5,
+              49.5
+            ],
+            [
+              40.5,
+              49.5
+            ],
+            [
+              40.5,
+              48.5
+            ],
+            [
+              38.5,
+              48.5
+            ],
+            [
+              38.5,
+              49.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Kherson",
+        "popupContent": "Occupied Kherson"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              32.3,
+              47.3
+            ],
+            [
+              34.3,
+              47.3
+            ],
+            [
+              34.3,
+              46.3
+            ],
+            [
+              32.3,
+              46.3
+            ],
+            [
+              32.3,
+              47.3
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Zaporizhzhia",
+        "popupContent": "Occupied Zaporizhzhia"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              34.3,
+              48
+            ],
+            [
+              36.3,
+              48
+            ],
+            [
+              36.3,
+              47
+            ],
+            [
+              34.3,
+              47
+            ],
+            [
+              34.3,
+              48
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
+</code></pre> <hr/> <h2 id="chartjs-echarts-and-vega-lite">Chartjs, Echarts and Vega-Lite</h2> <p><a href="https://www.chartjs.org/">Chart.js</a> is a versatile JavaScript library for creating responsive and interactive charts. Supporting multiple chart types like bar, line, pie, and radar, it’s an ideal tool for visualizing data directly in webpages.</p> <p>Here’s an example of a JSON-style configuration that creates a bar chart in Chart.js:</p> <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>```chartjs
+{
+  "type": "bar",
+  "data": {
+    "labels": ["2017", "2018", "2019", "2020", "2021"],
+    "datasets": [
+      {
+        "label": "Population (millions)",
+        "data": [12, 15, 13, 14, 16],
+        "backgroundColor": "rgba(54, 162, 235, 0.6)",
+        "borderColor": "rgba(54, 162, 235, 1)",
+        "borderWidth": 1
+      }
+    ]
+  },
+  "options": {
+    "scales": {
+      "y": {
+        "beginAtZero": true
+      }
+    }
+  }
+}
+```
+</code></pre></div></div> <p>The rendered bar chart illustrates population data from 2017 to 2021:</p> <pre><code class="language-chartjs">{
+  "type": "bar",
+  "data": {
+    "labels": ["2017", "2018", "2019", "2020", "2021"],
+    "datasets": [
+      {
+        "label": "Population (millions)",
+        "data": [12, 15, 13, 14, 16],
+        "backgroundColor": "rgba(54, 162, 235, 0.6)",
+        "borderColor": "rgba(54, 162, 235, 1)",
+        "borderWidth": 1
+      }
+    ]
+  },
+  "options": {
+    "scales": {
+      "y": {
+        "beginAtZero": true
+      }
+    }
+  }
+}
+</code></pre> <hr/> <p><a href="https://echarts.apache.org/">ECharts</a> is a powerful visualization library from <a href="https://www.apache.org/">Apache</a> that supports a wide range of interactive charts, including more advanced types such as scatter plots, heatmaps, and geographic maps.</p> <p>The following JSON configuration creates a visually enhanced line chart that displays monthly sales data for two products.</p> <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>```echarts
+{
+  "title": {
+    "text": "Monthly Sales Comparison",
+    "left": "center"
+  },
+  "tooltip": {
+    "trigger": "axis",
+    "backgroundColor": "rgba(50, 50, 50, 0.7)",
+    "borderColor": "#777",
+    "borderWidth": 1,
+    "textStyle": {
+      "color": "#fff"
+    }
+  },
+  "legend": {
+    "data": ["Product A", "Product B"],
+    "top": "10%"
+  },
+  "xAxis": {
+    "type": "category",
+    "data": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    "axisLine": {
+      "lineStyle": {
+        "color": "#888"
+      }
+    }
+  },
+  "yAxis": {
+    "type": "value",
+    "axisLine": {
+      "lineStyle": {
+        "color": "#888"
+      }
+    },
+    "splitLine": {
+      "lineStyle": {
+        "type": "dashed"
+      }
+    }
+  },
+  "series": [
+    {
+      "name": "Product A",
+      "type": "line",
+      "smooth": true,
+      "data": [820, 932, 901, 934, 1290, 1330, 1320, 1400, 1450, 1500, 1600, 1650],
+      "itemStyle": {
+        "color": "#5470C6"
+      },
+      "lineStyle": {
+        "width": 3
+      },
+      "areaStyle": {
+        "color": {
+          "type": "linear",
+          "x": 0,
+          "y": 0,
+          "x2": 0,
+          "y2": 1,
+          "colorStops": [
+            { "offset": 0, "color": "rgba(84, 112, 198, 0.5)" },
+            { "offset": 1, "color": "rgba(84, 112, 198, 0)" }
+          ]
+        }
+      },
+      "emphasis": {
+        "focus": "series"
+      }
+    },
+    {
+      "name": "Product B",
+      "type": "line",
+      "smooth": true,
+      "data": [620, 732, 701, 734, 1090, 1130, 1120, 1200, 1250, 1300, 1400, 1450],
+      "itemStyle": {
+        "color": "#91CC75"
+      },
+      "lineStyle": {
+        "width": 3
+      },
+      "areaStyle": {
+        "color": {
+          "type": "linear",
+          "x": 0,
+          "y": 0,
+          "x2": 0,
+          "y2": 1,
+          "colorStops": [
+            { "offset": 0, "color": "rgba(145, 204, 117, 0.5)" },
+            { "offset": 1, "color": "rgba(145, 204, 117, 0)" }
+          ]
+        }
+      },
+      "emphasis": {
+        "focus": "series"
+      }
+    }
+  ]
+}
+```
+</code></pre></div></div> <p>The rendered output is shown below, and you can also interact with it using your mouse:</p> <pre><code class="language-echarts">{
+  "title": {
+    "text": "Monthly Sales Comparison",
+    "left": "center"
+  },
+  "tooltip": {
+    "trigger": "axis",
+    "backgroundColor": "rgba(50, 50, 50, 0.7)",
+    "borderColor": "#777",
+    "borderWidth": 1,
+    "textStyle": {
+      "color": "#fff"
+    }
+  },
+  "legend": {
+    "data": ["Product A", "Product B"],
+    "top": "10%"
+  },
+  "xAxis": {
+    "type": "category",
+    "data": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    "axisLine": {
+      "lineStyle": {
+        "color": "#888"
+      }
+    }
+  },
+  "yAxis": {
+    "type": "value",
+    "axisLine": {
+      "lineStyle": {
+        "color": "#888"
+      }
+    },
+    "splitLine": {
+      "lineStyle": {
+        "type": "dashed"
+      }
+    }
+  },
+  "series": [
+    {
+      "name": "Product A",
+      "type": "line",
+      "smooth": true,
+      "data": [820, 932, 901, 934, 1290, 1330, 1320, 1400, 1450, 1500, 1600, 1650],
+      "itemStyle": {
+        "color": "#5470C6"
+      },
+      "lineStyle": {
+        "width": 3
+      },
+      "areaStyle": {
+        "color": {
+          "type": "linear",
+          "x": 0,
+          "y": 0,
+          "x2": 0,
+          "y2": 1,
+          "colorStops": [
+            { "offset": 0, "color": "rgba(84, 112, 198, 0.5)" },
+            { "offset": 1, "color": "rgba(84, 112, 198, 0)" }
+          ]
+        }
+      },
+      "emphasis": {
+        "focus": "series"
+      }
+    },
+    {
+      "name": "Product B",
+      "type": "line",
+      "smooth": true,
+      "data": [620, 732, 701, 734, 1090, 1130, 1120, 1200, 1250, 1300, 1400, 1450],
+      "itemStyle": {
+        "color": "#91CC75"
+      },
+      "lineStyle": {
+        "width": 3
+      },
+      "areaStyle": {
+        "color": {
+          "type": "linear",
+          "x": 0,
+          "y": 0,
+          "x2": 0,
+          "y2": 1,
+          "colorStops": [
+            { "offset": 0, "color": "rgba(145, 204, 117, 0.5)" },
+            { "offset": 1, "color": "rgba(145, 204, 117, 0)" }
+          ]
+        }
+      },
+      "emphasis": {
+        "focus": "series"
+      }
+    }
+  ]
+}
+</code></pre> <hr/> <p><a href="https://vega.github.io/vega-lite/">Vega-Lite</a> is a declarative visualization grammar that allows users to create, share, and customize a wide range of interactive data visualizations. The following JSON configuration generates a straightforward bar chart:</p> <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>```vega_lite
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "width": 400,
+  "height": 200,
+  "padding": 5,
+
+  "data": [
+    {
+      "name": "table",
+      "values": [
+        {"category": "A", "value": 28},
+        {"category": "B", "value": 55},
+        {"category": "C", "value": 43},
+        {"category": "D", "value": 91},
+        {"category": "E", "value": 81},
+        {"category": "F", "value": 53},
+        {"category": "G", "value": 19},
+        {"category": "H", "value": 87}
+      ]
+    }
+  ],
+
+  "scales": [
+    {
+      "name": "xscale",
+      "type": "band",
+      "domain": {"data": "table", "field": "category"},
+      "range": "width",
+      "padding": 0.1
+    },
+    {
+      "name": "yscale",
+      "type": "linear",
+      "domain": {"data": "table", "field": "value"},
+      "nice": true,
+      "range": "height"
+    }
+  ],
+
+  "axes": [
+    {"orient": "bottom", "scale": "xscale"},
+    {"orient": "left", "scale": "yscale"}
+  ],
+
+  "marks": [
+    {
+      "type": "rect",
+      "from": {"data": "table"},
+      "encode": {
+        "enter": {
+          "x": {"scale": "xscale", "field": "category"},
+          "width": {"scale": "xscale", "band": 0.8},
+          "y": {"scale": "yscale", "field": "value"},
+          "y2": {"scale": "yscale", "value": 0},
+          "fill": {"value": "steelblue"}
+        },
+        "update": {
+          "fillOpacity": {"value": 1}
+        },
+        "hover": {
+          "fill": {"value": "orange"}
+        }
+      }
+    }
+  ]
+}
+```
+</code></pre></div></div> <p>The rendered output shows a clean and simple bar chart with a hover effect：</p> <pre><code class="language-vega_lite">{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "width": 400,
+  "height": 200,
+  "padding": 5,
+
+  "data": [
+    {
+      "name": "table",
+      "values": [
+        {"category": "A", "value": 28},
+        {"category": "B", "value": 55},
+        {"category": "C", "value": 43},
+        {"category": "D", "value": 91},
+        {"category": "E", "value": 81},
+        {"category": "F", "value": 53},
+        {"category": "G", "value": 19},
+        {"category": "H", "value": 87}
+      ]
+    }
+  ],
+
+  "scales": [
+    {
+      "name": "xscale",
+      "type": "band",
+      "domain": {"data": "table", "field": "category"},
+      "range": "width",
+      "padding": 0.1
+    },
+    {
+      "name": "yscale",
+      "type": "linear",
+      "domain": {"data": "table", "field": "value"},
+      "nice": true,
+      "range": "height"
+    }
+  ],
+
+  "axes": [
+    {"orient": "bottom", "scale": "xscale"},
+    {"orient": "left", "scale": "yscale"}
+  ],
+
+  "marks": [
+    {
+      "type": "rect",
+      "from": {"data": "table"},
+      "encode": {
+        "enter": {
+          "x": {"scale": "xscale", "field": "category"},
+          "width": {"scale": "xscale", "band": 0.8},
+          "y": {"scale": "yscale", "field": "value"},
+          "y2": {"scale": "yscale", "value": 0},
+          "fill": {"value": "steelblue"}
+        },
+        "update": {
+          "fillOpacity": {"value": 1}
+        },
+        "hover": {
+          "fill": {"value": "orange"}
+        }
+      }
+    }
+  ]
+}
+</code></pre> <hr/> <h2 id="tikz">TikZ</h2> <p><a href="https://tikz.net/">TikZ</a> is a powerful LaTeX-based drawing tool powered by <a href="https://tikzjax.com/">TikZJax</a>. You can easily port TikZ drawings from papers, posters, and notes. For example, we can use the following code to illustrate Euler’s formula $ e^{i \theta} = \cos \theta + i \sin \theta $:</p> <div class="language-markdown highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;script </span><span class="na">type=</span><span class="s">"text/tikz"</span><span class="nt">&gt;</span>
+<span class="se">\b</span>egin{document}
+  <span class="se">\b</span>egin{tikzpicture}
+      <span class="se">\f</span>illdraw[fill=cyan!10, draw=blue, thick] (0,0) circle (2cm);<span class="sb">
+
+      \draw[-&gt;, thick] (-2.5,0) -- (2.5,0) node[right] {Re};
+      \draw[-&gt;, thick] (0,-2.5) -- (0,2.5) node[above] {Im};
+
+      \draw[-&gt;, thick, color=purple] (0,0) -- (1.5,1.5);
+      \node[color=purple] at (1.1, 1.7) {$e^{i\theta}$};
+
+      \draw[thick] (0.7,0) arc (0:45:0.7);
+      \node at (0.9, 0.3) {$\theta$};
+
+      \draw[dashed, color=gray] (1.5,1.5) -- (1.5,0) node[below, black] {$\cos \theta$};
+      \draw[dashed, color=gray] (1.5,1.5) -- (0,1.5) node[left, black] {$\sin \theta$};
+      \node at (2.2, 0) [below] {1};
+      \node at (0, 2.2) [left] {$i$};
+      \node at (1.5,1.5) [above right, color=blue] {$(\cos \theta \, \sin \theta)$};
+</span>  <span class="se">\e</span>nd{tikzpicture}
+<span class="se">\e</span>nd{document}
+<span class="nt">&lt;/script&gt;</span>
+</code></pre></div></div> <p>The rendered output is shown below, displayed as a vector graphic：</p> <script type="text/tikz">
+\begin{document}
+  \begin{tikzpicture}
+      \filldraw[fill=cyan!10, draw=blue, thick] (0,0) circle (2cm);
+
+      \draw[->, thick] (-2.5,0) -- (2.5,0) node[right] {Re};
+      \draw[->, thick] (0,-2.5) -- (0,2.5) node[above] {Im};
+
+      \draw[->, thick, color=purple] (0,0) -- (1.5,1.5);
+      \node[color=purple] at (1.1, 1.7) {$e^{i\theta}$};
+
+      \draw[thick] (0.7,0) arc (0:45:0.7);
+      \node at (0.9, 0.3) {$\theta$};
+
+      \draw[dashed, color=gray] (1.5,1.5) -- (1.5,0) node[below, black] {$\cos \theta$};
+      \draw[dashed, color=gray] (1.5,1.5) -- (0,1.5) node[left, black] {$\sin \theta$};
+      \node at (2.2, 0) [below] {1};
+      \node at (0, 2.2) [left] {$i$};
+      \node at (1.5,1.5) [above right, color=blue] {$(\cos \theta \, \sin \theta)$};
+  \end{tikzpicture}
+\end{document}
+</script> <hr/> <h2 id="typograms">Typograms</h2> <p><a href="https://google.github.io/typograms/">Typograms</a> are a way of combining text and graphics to convey information in a clear and visually engaging manner. Typograms are particularly effective for illustrating simple diagrams, charts, and concept visuals where text and graphics are closely integrated. The following example demonstrates a simple Typogram:</p> <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>```typograms
+             ___________________
+            /                  /|
+           /__________________/ |
+          |                  |  |
+          |     Distill      |  |
+          |                  |  |
+          |                  | /
+          |__________________|/
+```
+</code></pre></div></div> <p>The rendered output is shown below：</p> <pre><code class="language-typograms">             ___________________
+            /                  /|
+           /__________________/ |
+          |                  |  |
+          |     Distill      |  |
+          |                  |  |
+          |                  | /
+          |__________________|/
+</code></pre> <hr/> <h2 id="layouts">Layouts</h2> <p>The main text column is referred to as the body. It is the assumed layout of any direct descendants of the <code class="language-plaintext highlighter-rouge">d-article</code> element.</p> <div class="fake-img l-body"> <p>.l-body</p> </div> <p>For images you want to display a little larger, try <code class="language-plaintext highlighter-rouge">.l-page</code>:</p> <div class="fake-img l-page"> <p>.l-page</p> </div> <p>All of these have an outset variant if you want to poke out from the body text a little bit. For instance:</p> <div class="fake-img l-body-outset"> <p>.l-body-outset</p> </div> <div class="fake-img l-page-outset"> <p>.l-page-outset</p> </div> <p>Occasionally you’ll want to use the full browser width. For this, use <code class="language-plaintext highlighter-rouge">.l-screen</code>. You can also inset the element a little from the edge of the browser by using the inset variant.</p> <div class="fake-img l-screen"> <p>.l-screen</p> </div> <div class="fake-img l-screen-inset"> <p>.l-screen-inset</p> </div> <p>The final layout is for marginalia, asides, and footnotes. It does not interrupt the normal flow of <code class="language-plaintext highlighter-rouge">.l-body</code> sized text except on mobile screen sizes.</p> <div class="fake-img l-gutter"> <p>.l-gutter</p> </div> <hr/> <h2 id="sidenotes">Sidenotes</h2> <p>Distill supports sidenotes, which are like footnotes but placed in the margin of the page. They are useful for providing additional context or references without interrupting the flow of the main text.</p> <p>There are two main ways to create a sidenote:</p> <p><strong>Using the <code class="language-plaintext highlighter-rouge">&lt;aside&gt;</code> tag:</strong></p> <p>The following code creates a sidenote with <strong><em>distill’s styling</em></strong> in the margin:</p> <div class="language-html highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;aside&gt;&lt;p&gt;</span>This is a sidenote using aside tag.<span class="nt">&lt;/p&gt;&lt;/aside&gt;</span>
+</code></pre></div></div> <aside><p> This is a sidenote using `&lt;aside&gt;` tag</p> </aside> <p>We can also add images to sidenotes (click on the image to zoom in for a larger version):</p> <div class="language-html highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;aside&gt;</span>
+  {% include figure.liquid loading="eager" path="assets/img/rhino.png" class="img-fluid rounded z-depth-1" zoomable=true %}
+  <span class="nt">&lt;p&gt;</span>
+    F.J. Cole, “The History of Albrecht Dürer’s Rhinoceros in Zoological Literature,” Science, Medicine, and History: Essays on the Evolution of
+    Scientific Thought and Medical Practice (London, 1953), ed. E. Ashworth Underwood, 337-356. From page 71 of Edward Tufte’s Visual Explanations.
+  <span class="nt">&lt;/p&gt;</span>
+<span class="nt">&lt;/aside&gt;</span>
+</code></pre></div></div> <aside> <figure> <picture> <source class="responsive-img-srcset" srcset="/hzeristo-page/assets/img/rhino-480.webp 480w,/hzeristo-page/assets/img/rhino-800.webp 800w,/hzeristo-page/assets/img/rhino-1400.webp 1400w," type="image/webp" sizes="95vw"/> <img src="/hzeristo-page/assets/img/rhino.png" class="img-fluid rounded z-depth-1" width="100%" height="auto" data-zoomable="" loading="eager" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"/> </picture> </figure> <p>F.J. Cole, “The History of Albrecht Dürer’s Rhinoceros in Zoological Literature,” Science, Medicine, and History: Essays on the Evolution of Scientific Thought and Medical Practice (London, 1953), ed. E. Ashworth Underwood, 337-356. From page 71 of Edward Tufte’s Visual Explanations.</p> </aside> <p>Sidenotes can also contain equations and links:</p> <p>In physics, mass–energy equivalence is the relationship between mass and energy in a system’s rest frame. The two differ only by a multiplicative constant and the units of measurement.</p> <aside> <p>This principle is defined by Einstein's famous equation: $E = mc^2$ <a href="https://en.wikipedia.org/wiki/Mass%E2%80%93energy_equivalence" target="_blank">(Source: Wikipedia)</a></p> </aside> <p><strong>Using the <code class="language-plaintext highlighter-rouge">l-gutter</code> class:</strong></p> <p>The following code creates a sidenote with <strong><em>al-folio’s styling</em></strong> in the margin:</p> <div class="language-html highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">"l-gutter"</span><span class="nt">&gt;&lt;p&gt;</span>This is a sidenote using l-gutter class.<span class="nt">&lt;/p&gt;&lt;/div&gt;</span>
+</code></pre></div></div> <div class="l-gutter"> <p> This is a sidenote using `l-gutter` class. </p> </div> <hr/> <h2 id="other-typography">Other Typography?</h2> <p>Emphasis, aka italics, with <em>asterisks</em> (<code class="language-plaintext highlighter-rouge">*asterisks*</code>) or <em>underscores</em> (<code class="language-plaintext highlighter-rouge">_underscores_</code>).</p> <p>Strong emphasis, aka bold, with <strong>asterisks</strong> or <strong>underscores</strong>.</p> <p>Combined emphasis with <strong>asterisks and <em>underscores</em></strong>.</p> <p>Strikethrough uses two tildes. <del>Scratch this.</del></p> <ol> <li>First ordered list item</li> <li>Another item ⋅⋅* Unordered sub-list.</li> <li>Actual numbers don’t matter, just that it’s a number ⋅⋅1. Ordered sub-list</li> <li>And another item.</li> </ol> <p>⋅⋅⋅You can have properly indented paragraphs within list items. Notice the blank line above, and the leading spaces (at least one, but we’ll use three here to also align the raw Markdown).</p> <p>⋅⋅⋅To have a line break without a paragraph, you will need to use two trailing spaces.⋅⋅ ⋅⋅⋅Note that this line is separate, but within the same paragraph.⋅⋅ ⋅⋅⋅(This is contrary to the typical GFM line break behaviour, where trailing spaces are not required.)</p> <ul> <li> <p>Unordered list can use asterisks</p> </li> <li> <p>Or minuses</p> </li> <li> <p>Or pluses</p> </li> </ul> <p><a href="https://www.google.com">I’m an inline-style link</a></p> <p><a href="https://www.google.com" title="Google's Homepage">I’m an inline-style link with title</a></p> <p><a href="https://www.mozilla.org">I’m a reference-style link</a></p> <p><a href="https://slashdot.org">You can use numbers for reference-style link definitions</a></p> <p>Or leave it empty and use the <a href="https://www.reddit.com">link text itself</a>.</p> <p>URLs and URLs in angle brackets will automatically get turned into links. https://www.example.com or <a href="https://www.example.com">https://www.example.com</a> and sometimes example.com (but not on Github, for example).</p> <p>Some text to show that the reference links can follow later.</p> <p>Here’s our logo (hover to see the title text):</p> <p>Inline-style: <img src="https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png" alt="alt text" title="Logo Title Text 1"/></p> <p>Reference-style: <img src="https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png" alt="alt text" title="Logo Title Text 2"/></p> <p>Inline <code class="language-plaintext highlighter-rouge">code</code> has <code class="language-plaintext highlighter-rouge">back-ticks around</code> it.</p> <div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">var</span> <span class="nx">s</span> <span class="o">=</span> <span class="dl">"</span><span class="s2">JavaScript syntax highlighting</span><span class="dl">"</span><span class="p">;</span>
+<span class="nf">alert</span><span class="p">(</span><span class="nx">s</span><span class="p">);</span>
+</code></pre></div></div> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">s</span> <span class="o">=</span> <span class="sh">"</span><span class="s">Python syntax highlighting</span><span class="sh">"</span>
+<span class="k">print</span> <span class="n">s</span>
+</code></pre></div></div> <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>No language indicated, so no syntax highlighting.
+But let's throw in a &lt;b&gt;tag&lt;/b&gt;.
+</code></pre></div></div> <p>Colons can be used to align columns.</p> <table> <thead> <tr> <th>Tables</th> <th style="text-align: center">Are</th> <th style="text-align: right">Cool</th> </tr> </thead> <tbody> <tr> <td>col 3 is</td> <td style="text-align: center">right-aligned</td> <td style="text-align: right">$1600</td> </tr> <tr> <td>col 2 is</td> <td style="text-align: center">centered</td> <td style="text-align: right">$12</td> </tr> <tr> <td>zebra stripes</td> <td style="text-align: center">are neat</td> <td style="text-align: right">$1</td> </tr> </tbody> </table> <p>There must be at least 3 dashes separating each header cell. The outer pipes (|) are optional, and you don’t need to make the raw Markdown line up prettily. You can also use inline Markdown.</p> <table> <thead> <tr> <th>Markdown</th> <th>Less</th> <th>Pretty</th> </tr> </thead> <tbody> <tr> <td><em>Still</em></td> <td><code class="language-plaintext highlighter-rouge">renders</code></td> <td><strong>nicely</strong></td> </tr> <tr> <td>1</td> <td>2</td> <td>3</td> </tr> </tbody> </table> <blockquote> <p>Blockquotes are very handy in email to emulate reply text. This line is part of the same quote.</p> </blockquote> <p>Quote break.</p> <blockquote> <p>This is a very long line that will still be quoted properly when it wraps. Oh boy let’s keep writing to make sure this is long enough to actually wrap for everyone. Oh, you can <em>put</em> <strong>Markdown</strong> into a blockquote.</p> </blockquote> <p>Here’s a line for us to start with.</p> <p>This line is separated from the one above by two newlines, so it will be a <em>separate paragraph</em>.</p> <p>This line is also a separate paragraph, but… This line is only separated by a single newline, so it’s a separate line in the <em>same paragraph</em>.</p>]]></content><author><name>Albert Einstein</name></author><category term="distill"/><category term="formatting"/><summary type="html"><![CDATA[an example of a distill-style blog post and main elements]]></summary></entry><entry><title type="html">a post with disqus comments</title><link href="https://hzeristo.github.io/hzeristo-page/blog/2015/disqus-comments/" rel="alternate" type="text/html" title="a post with disqus comments"/><published>2015-10-20T15:59:00+00:00</published><updated>2015-10-20T15:59:00+00:00</updated><id>https://hzeristo.github.io/hzeristo-page/blog/2015/disqus-comments</id><content type="html" xml:base="https://hzeristo.github.io/hzeristo-page/blog/2015/disqus-comments/"><![CDATA[<p>This post shows how to add DISQUS comments.</p>]]></content><author><name></name></author><category term="sample-posts"/><category term="external-services"/><category term="comments"/><summary type="html"><![CDATA[an example of a blog post with disqus comments]]></summary></entry></feed>
