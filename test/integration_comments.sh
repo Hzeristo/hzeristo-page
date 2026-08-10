@@ -2,6 +2,7 @@
 set -euo pipefail
 
 tmp_dir="$(mktemp -d)"
+INTEGRATION_TMP_DIR="${tmp_dir}"
 tmp_override="${tmp_dir}/comments-test-override.yml"
 tmp_site="${tmp_dir}/site"
 
@@ -9,6 +10,9 @@ cleanup() {
   rm -rf "${tmp_dir}"
 }
 trap cleanup EXIT
+
+# shellcheck source=test/lib/integration_build.sh
+source test/lib/integration_build.sh
 
 cat >"${tmp_override}" <<'YAML'
 giscus:
@@ -18,7 +22,7 @@ giscus:
   category_id: DIC_kwDOExample
 YAML
 
-bundle exec jekyll build --config "_config.yml,${tmp_override}" -d "${tmp_site}" >/dev/null
+integration_build "${tmp_site}" --config "_config.yml,${tmp_override}"
 
 giscus_page="${tmp_site}/blog/2022/giscus-comments/index.html"
 disqus_page="${tmp_site}/blog/2015/disqus-comments/index.html"
