@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build a Jekyll site for integration tests: copy the starter into a temp
-# source tree and inject CI-only demo posts from test/fixtures/posts/.
+# source tree and inject CI-only demo posts from test/fixtures/posts/ and demo
+# bibliography from test/fixtures/bibliography/.
 #
 # Usage (from repo root, after setting INTEGRATION_TMP_DIR):
 #   source test/lib/integration_build.sh
@@ -27,6 +28,7 @@ integration_build() {
     ./ "${site_src}/"
 
   cp test/fixtures/posts/*.md "${site_src}/_posts/"
+  cp test/fixtures/bibliography/papers.bib "${site_src}/_bibliography/papers.bib"
 
   (
     cd "${site_src}"

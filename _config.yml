@@ -338,8 +338,8 @@ display_categories: [] # categories shown on the blog index
 # -----------------------------------------------------------------------------
 
 scholar:
-  last_name: [Einstein]
-  first_name: [Albert, A.]
+  last_name: [Song]
+  first_name: [Ruize]
 
   style: apa
   locale: en

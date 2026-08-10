@@ -13,7 +13,7 @@ profile:
     <p>Yuquan Campus,Zhejiang University</p>
     <p>Hangzhou, Zhejiang, China</p>
 
-selected_papers: true # 首页展示标记为 selected={true} 的论文
+selected_papers: false # set true after adding entries with selected={true} in _bibliography/papers.bib
 social: true # 底部显示社交图标（链接来自 _data/socials.yml）
 
 latest_posts:
