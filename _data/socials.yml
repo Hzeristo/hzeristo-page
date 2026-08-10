@@ -1,14 +1,36 @@
-# this file contains the social media links and usernames of the author
-# the socials will be displayed in the order they are defined here
-# for more information, please refer to the documentation of jekyll-socials plugin: https://github.com/george-gca/jekyll-socials
-cv_pdf: /assets/pdf/example_pdf.pdf # path to your CV PDF file
-email: you@example.com # your email address
-inspirehep_id: 1010907 # Inspire HEP author ID
-rss_icon: true # comment this line to hide the RSS icon
-scholar_userid: qc6CJjYAAAAJ # your Google Scholar ID
-# wechat_qr: # filename of your wechat qr-code saved as an image (e.g., wechat-qr.png if saved to assets/img/wechat-qr.png)
-# whatsapp_number: # your WhatsApp number (full phone number in international format. Omit any zeroes, brackets, or dashes when adding the phone number in international format.)
-custom_social: # can be any name here other than the ones already defined in the jekyll-socials plugin
-  logo: https://www.alberteinstein.com/wp-content/uploads/2024/03/cropped-favicon-192x192.png # can be png, svg, jpg
-  title: Custom Social
-  url: https://www.alberteinstein.com/
+# 社交链接按下方顺序显示。不需要的项请删除整行，或在该行前加 # 注释掉。
+# 完整字段列表：https://george-gca.github.io/jekyll-socials/
+
+# --- 联系方式 ---
+email: haydenshui@gmail.com # ← 请改为你的邮箱
+# cv_pdf: /assets/pdf/cv.pdf # 可选：CV PDF 下载路径
+
+# --- 学术平台（按需取消注释并填写）---
+# scholar_userid: YOUR_GOOGLE_SCHOLAR_ID
+# orcid_id: 0000-0000-0000-0000
+# inspirehep_id:
+# semanticscholar_id:
+# research_gate_profile:
+# arxiv_id:
+# dblp_url:
+
+# --- 代码 / 社交（按需取消注释并填写）---
+github_username: Hzeristo # ← 请改为你的 GitHub 用户名
+# gitlab_username:
+# linkedin_username:
+# x_username: # 原 Twitter
+# mastodon_username:
+# mastodon_server: # 例如 mastodon.social
+# bluesky_url:
+# youtube_id:
+
+# --- 其他 ---
+# rss_icon: true # 显示 RSS 订阅图标
+# wechat_qr: wechat-qr.png # 二维码图片放在 assets/img/ 下
+# whatsapp_number: # 国际格式完整号码，不含 +、括号、横线
+
+# --- 自定义链接（非内置平台时使用）---
+# custom_social:
+#   logo: fa-solid fa-link # Font Awesome / Academicons 类名，或图片 URL
+#   title: 个人主页
+#   url: https://example.com

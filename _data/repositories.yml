@@ -1,14 +1,11 @@
+# GitHub 仓库展示页（/repositories/）的数据源
+# 不需要此页面时，可在 _pages/repositories.md 中禁用或删除
+
 github_users:
-  - torvalds
-  - alshedivat
+  - Hzeristo # ← 请改为你的 GitHub 用户名
 
 repo_description_lines_max: 2
 
 github_repos:
-  - alshedivat/al-folio
-  - jekyll/jekyll
-  - twbs/bootstrap
-  - jquery/jquery
-  - FortAwesome/Font-Awesome
-  - mathjax/MathJax
-  - jpswalsh/academicons
+  - Hzeristo/hzeristo-page # ← 改为你想展示的仓库，可添加多行
+  # - your-username/another-repo
