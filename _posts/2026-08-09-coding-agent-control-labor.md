@@ -1,0 +1,392 @@
+---
+layout: post
+title: 不是任务，是第二份工作：Coding Agent 如何把控制劳动退还给用户
+date: 2026-08-09 12:00:00
+description: 从 Codex 与 Claude Code 的差异，谈被 benchmark 漏算的人类工作
+tags: coding-agent harness-engineering
+categories: blog
+related_posts: false
+---
+
+## 从 Codex 与 Claude Code 的差异，谈被 benchmark 漏算的人类工作
+
+Coding agent 最恶毒的问题不是它偶尔写错代码，也不是用户偶尔需要补一个 prompt。真正的问题是它把一整套持续的项目管理、状态维护和判断控制退还给用户，却仍然把最后生成的代码全部计成自己的生产力。
+
+这里要严格区分任务和工作。任务可以是查找某个 API 的调用点、修复一个测试、实现一个已经冻结的接口、给某个模块补类型定义。工作则是持续承担：当前究竟在解决什么问题、哪些假设仍然成立、任务该怎么分解、哪些新发现要求修改 specification、哪些历史决策已经失效、什么时候该继续什么时候该停、最终结果是不是真的符合目标。
+
+用户本来有自己的研究、设计或工程要做，不可能每天再花一半时间管理工具的上下文、清理记忆、调度 subagent、修订规则、阻止错误 closure。那不是一个附带任务，那是第二份工作。
+
+---
+
+## 一、不是"代码写得好不好"
+
+GPT-5.6 Sol 不是一个弱模型。在 Artificial Analysis 当前的 Coding Agent Index v1.3 里，Claude Code + Opus 5 xHigh 与 Codex + GPT-5.6 Sol Max 的综合分数同为 67，但子项分开：
+
+| 指标                                 | Claude Code + Opus 5 xHigh | Codex + GPT-5.6 Sol Max |
+| ------------------------------------ | -------------------------: | ----------------------: |
+| Coding Agent Index                   |                         67 |                      67 |
+| DeepSWE                              |                       更低 |                     69% |
+| Terminal-Bench v2                    |                       更低 |                     88% |
+| SWE-Atlas-QnA                        |                        55% |                     43% |
+| 平均模型成本 / 运行时间 / token 用量 |                       更高 |                    更低 |
+
+Artificial Analysis 自己提醒，综合分数相似的 agent 仍可能在代码库理解、终端执行和 rubric-based 任务上呈现完全不同的能力剖面。
+
+所以本文不主张 Codex 因为不会写代码所以不如 Claude Code。本文讨论的是另一件事：一个强模型经过特定 harness 组织之后，究竟是在替用户承担持续工作，还是要求用户长期承担一套隐藏的控制劳动，才能释放它的局部执行能力。
+
+为了保持全文一致，下面用五个固定术语：
+
+- 长期状态不稳定，指项目目标、当前 checkpoint、未解决问题和历史决策，无法在长会话、压缩、恢复和跨 session 使用后稳定存活
+- 编排退化，指 orchestration 退化成任务分发、增加 agent job、重复 review 和汇总摘要，而没有真正维持全局问题图景
+- 局部故事俘获，指当前代码、当前 plan、当前 memory 和当前工作流逐渐获得高于原始目标的权威，agent 开始维护眼前方案，不再重新判断方案是否正确
+- 过早闭合，指证据不足时系统仍倾向于形成完整、可交付、可解释的结果，而不是保留 unresolved
+- 规则堆积，指用户为了控制前述问题不断增加 `AGENTS.md`、skills、memories 和额外流程，模型又偏好保留旧内容、字面执行新规则，最终形成 append-only 的控制系统
+
+这五个问题不是彼此独立的 bug，而会构成一个自强化循环：
+
+```text
+长期状态不稳定
+→ 用户增加规则、memory 和外部状态文件
+→ 规则堆积与上下文膨胀
+→ 更频繁的压缩与渐进式检索
+→ 编排退化与局部故事俘获
+→ 过早闭合
+→ 用户继续增加控制规则
+```
+
+---
+
+## 二、实际使用体验与社区用户故事
+
+### 2.1 为什么个人体验有诊断价值
+
+重度使用 Codex 之前，我长期用 Claude Code，以及 Opus/Fable 1M：我知道相似的长程 coding 和 research 工作，并不必然要求用户承担这么重的外部控制。
+
+缺少这种对照的话，Codex 的许多行为很容易被解释成 agentic coding 的自然困难：长任务本来就会遗忘，agent 本来就需要很多规则，多 agent 本来就必须频繁总结，项目本来就需要用户手动切任务，模型本来就应该严格执行 `AGENTS.md`，research 本来就只能从关键词判断前人是否做过。但当另一套产品已经能够原生承担更多状态管理、上下文解释和动态重规划时，这些行为就不再是领域定律，而是某种具体的 **model × harness disposition**。
+
+比较经验还有一个更重要的作用：它让人能识别"从未发生的能力"。Codex 的问题往往不表现为明显报错，而表现为某些事件很少自然发生。Agent 很少主动认为当前 story 可能错了；高显著发现很少真正重写计划；unresolved 很少长期存活；claim 很少被主动拆到可证伪的实验结果/命题粒度；旧规则很少被判断为已失效并删除；orchestrator 很少同时维持多个互相竞争的全局解释。如果用户从未见过这些行为，就很容易继续给模型加规则，而不是意识到这里缺少的是一种 disposition。
+
+---
+
+### 2.2 长期状态不稳定：长任务放不下，短任务用不完
+
+在我当前的 Codex 配置和项目使用里，272k 有效工作上下文处在一个很尴尬的位置。
+
+对真正的长程项目，它放不下完整的问题图景、多轮实现历史、competing hypotheses、当前 task graph、已解决与未解决状态、原始 evidence 与 provenance、多个 subagent 的调查轨迹，以及规则与规则之间的历史关系。一旦这些内容共同进入主会话，compaction 就不再是偶发事件，而成为长期运行的核心状态转换。
+
+但对一个边界明确的局部任务，这么大的工作区又远超必要。它会诱使用户在相同上下文中多次执行局部任务，导致系统把项目级规则、历史 memory、工作流和局部执行过程全部塞进同一上下文。短任务没有真正利用这些信息，却要承受指令冲突、历史噪声、错误关联、规则堆积和后续压缩成本。所以它既不是可靠的项目记忆，也不是干净的 task-local scratchpad。
+
+最危险的不是模型忘了一个细节，而是压缩之后仍然保留了任务的大致主题，却丢掉了决定当前行动的关键 distinction：哪些工作已经完成、哪条路径已被否定、哪个条件只是临时假设、用户最近一次纠正改变了什么、当前是在探索还是执行还是验证阶段。这会产生一种特别难察觉的漂移：agent 看起来仍然知道项目在做什么，实际上已经开始解决另一个问题。
+
+一个近期 Codex GitHub issue 报告了高度相似的故障。自动 compaction 后，主 agent 重新读取已经分析过的文件、重跑已完成命令、重开已解决问题，并重复主 agent 或 subagent 已经做过的工作。该会话反复进入"接近完成、压缩、丢失状态、重复工作"的循环，整周额度被消耗后，任务仍未完成。
+
+这里暴露的不是普通聊天记忆不足，而是当前 task phase、completed work、unresolved issues、subagent findings 和 rejected approaches，没有一个可靠的、独立于自然语言 compaction 的结构化状态层。
+
+---
+
+### 2.3 缺乏生命周期治理的项目状态
+
+我的真实使用体验里，项目记忆反复出现四个问题：新知识容易被追加、旧知识却没有可靠失效；新旧 memory 可能同时进入有效上下文；记忆粒度在过细和过粗之间摇摆；宏观记忆文件会持续膨胀。
+
+这些已经是实际使用中已经发生的问题。官方机制和社区案例的价值，在于解释这些体验为什么可预期，以及为什么不是单一用户的偶然失误。
+
+#### 2.3.1 自动 memory，并非 agent memory
+
+Codex 的 Local Memories 会从符合条件的历史 thread 中抽取有用内容，在后台更新本地 memory 文件，并保存 summaries、durable entries、recent inputs 和 supporting evidence，还允许分别配置 extraction model 与 consolidation model。也就是说，Codex 的自动 memory 确实有 encoding、storage、consolidation 和 retrieval。
+
+但官方同时明确指出：这些文件应被视为 generated state；可以检查，但不应依赖手工编辑作为主要控制面；必须始终生效的团队指导应继续放在 `AGENTS.md` 或 checked-in docs；memory 只是辅助 recall layer，不是 authoritative source。
+
+这形成了一个很关键的分裂。自动 memory 容易写入，但不适合作为权威知识；repo docs 和 `AGENTS.md` 可以作为权威知识，但需要用户治理。Codex 自动化了最容易的部分，也就是生成新记忆，却没有自动化项目记忆中最困难的部分：旧知识什么时候失效、新知识是否覆盖旧知识、适用 scope 是否发生变化、两条 memory 冲突时哪一条 authoritative、错误 memory 应该如何删除、临时经验何时过期。
+
+所以它未必是物理意义上的纯 append-only，但很容易成为 semantic append-only：新结论不断加入，旧结论没有稳定的 supersession 和 deletion semantics。在我的使用里，这最终体现为需要定期手动精简 `AGENTS.md` 和 memories。否则旧规则不会自然退出，只会继续作为背景引力影响后续行为。
+
+Claude Code 社区也出现了相同的一般性问题。有用户报告 auto memory 会变得 stale，不持续要求 Claude 更新就会开始漂移；另一些用户每周执行 memory sweep，主动审查和删除过期内容。这说明 append-only 不是 Codex 独有的产品 bug，而是自然语言 agent memory 的一般生命周期难题。差别在于一个系统是否把这种治理负担透明化、局部化，并降低到可接受范围。
+
+#### 2.3.2 覆盖旧规则不等于旧规则真正消失
+
+Codex 会沿目录层级读取 `AGENTS.md`，从全局、repo root 一直到当前工作目录，按顺序把文件连接到同一个 prompt。靠近当前目录的规则因为出现得更晚而具有 override 效果，默认合并上限是 32 KiB。
+
+但这种 override 不等于真正的数据库更新。实际输入更接近：
+
+$$
+M_{\text{old}} + M_{\text{new}} + \text{“后者优先”的隐式约定}
+$$
+
+而不是：
+
+$$
+\operatorname{Replace}(M_{\text{old}}, M_{\text{new}})
+$$
+
+旧文本仍然在上下文里。只要模型对 scope、优先级、exception，以及局部规则和全局规则的关系理解得不够稳定，新旧规则就可能共同影响行为。这和我的实际体验高度一致：有时模型显然知道新决定，却仍然受旧项目故事、旧限制或旧工作方式牵引。它不是完全没读到新规则，而是没有把旧规则真正移出有效状态。
+
+Local Memories 的检索和冲突处理更加不透明。官方只说明 `use_memories` 会把已有 memory 注入未来 session，但没有公开说明：
+
+- 是全部注入还是选择性召回
+- 按 project、repo 还是其他 scope 过滤
+- 冲突条目如何排序
+- supporting evidence 是否同步呈现
+- 新旧记忆是否会同时进入上下文
+
+这带来一个诊断困难：当 agent 做出奇怪决策时，用户无法清楚判断它究竟是在服从当前 repo、当前 `AGENTS.md`、某条旧 memory，还是 compaction 后形成的混合叙事。Claude Code 用户也报告过类似问题，auto memory 与 `CLAUDE.md` 逐渐失去同步，直到行为开始混乱才意识到隐藏 memory 已经 stale；有人因此把 memory symlink 回 repo，用 Git 跟踪更新，并设行数上限强制 pruning。
+
+所以问题不是 memory 能不能被读取，而是项目是否存在一个可检查、可更新、可删除、可确定优先级的 authoritative state。
+
+#### 2.3.3 记忆粒度会在临时噪声和空洞原则之间摇摆
+
+自动 memory 必须决定什么值得保存，以及以多大粒度保存。粒度过细时，系统可能永久记录一次性路径和临时 workaround，也可能记住某个环境才有的命令、单次任务里的局部错误，或者只在当前 branch 成立的限制。粒度过粗时，它又可能把"某种方案在一个特殊 constraint 下失败"压成"以后不要使用这种方案"。
+
+在 auto-research 里，同一种失效表现为 topic-level collapse：一篇 memory paper 某处提到 `update`，被压成"agent memory update 已经有人做了"。这里丢掉的不是几个 token，而是 claim 成立所需的关键条件，包括 scope、mechanism、lifecycle、functional role、experimental evidence 和 causal attribution。一旦这些 distinction 在写入 memory 时被压掉，未来检索再准确，也只能准确地召回一个过粗的错误命题。
+
+所以 memory granularity 不是摘要美学问题，它在决定哪些差异还能在未来影响系统行动。
+
+Codex Local Memories 使用独立的 extraction 与 consolidation 模型，但公开文档没有提供一个用户可以直接审查的结构化 schema，比如 confidence、temporal validity、supersedes、project scope、claim conditions、contradiction、expiry、write rationale。这意味着粒度、泛化范围和成立条件主要由生成模型自行决定。
+
+Claude Code 社区逐渐形成的经验指向同一个难题。其 per-project `MEMORY.md` 在部分 rollout 中只自动加载前 200 行，因此用户把它改造成一个短索引，把 architecture、gotchas 和 decisions 分散到按需读取的主题文件里。社区提示词甚至明确要求更新或删除过时 memory，并按语义主题而不是时间顺序组织。这是一种合理的 granularity policy，但它再次说明可靠 memory 不是多记一点，而是要区分 index、evidence、decision、rule 和 temporary state。而这种区分本身又是一项持续的知识工程工作。
+
+#### 2.3.4 宏观记忆文件会自然膨胀
+
+在我的实际使用中，`AGENTS.md`、skills 和 memories 会不断增长。原因很简单：项目持续产生新的规则、异常、历史经验、workaround、decision 和 exception，而如果写入新内容比判断旧内容是否失效更容易，增长就是默认结果。
+
+Codex 本身的 disposition 又强烈偏向非破坏性修改：保留已有修改、避免破坏性覆盖、不确定时采取保守方案、优先兼容已有配置。这些偏好叠加后，最安全的局部动作就变成：
+
+$$
+\text{append} > \text{update} > \text{remove}
+$$
+
+OpenAI 自己的 harness-engineering 文章提到，他们试过"一个巨大 `AGENTS.md`"的方案，结果以可预测的方式失败：挤占任务、代码和相关文档的 context；当所有内容都重要时等于没有指导；agent 开始局部 pattern matching；单体手册迅速变成 stale-rule graveyard；freshness、ownership 和 cross-link 难以机械检查。他们最终采用的是约 100 行的短 `AGENTS.md` 作为地图，结构化 `docs/` 作为 system of record，active、completed 和 technical-debt plans 分区，versioned progress 和 decision logs，以及 lint、CI 与 recurring doc-gardening agent 检查 stale documentation。
+
+这几乎直接验证了我的使用体验：宏观 memory 文件不会因为模型很聪明就自动保持干净，它必须像真实知识库一样拥有分层、索引、版本、失效和 gardening。
+
+对个人开发者来说，这意味着用户不只是在写一条 `AGENTS.md`，而是在兼职建设和维护项目 ontology、document architecture、memory lifecycle、provenance system、freshness checker 和 supersession policy。这已经不是给工具一点上下文，这是维护工具自己的知识基础设施。
+
+---
+
+### 2.4 编排退化：会调用 subagent，不等于会 orchestration
+
+在我的配置和实际使用中，Codex 主 agent 不适合承担真正的项目级 orchestration。这个判断至少来自三个方面。
+
+**第一，主上下文不足以同时维护项目状态与组织状态。** 一个 orchestrator 不只需要知道每个 subagent 在做什么，还需要长期维护任务之间的依赖、哪些调查可以并行、哪些结果会推翻上游假设、哪些分支仍然 unresolved、哪些 evidence 相互冲突、当前全局 story 是否仍成立、何时应该重开 planning。如果项目状态本身已经逼近压缩边界，再把多个 subagent 的调查过程和输出回灌给主 agent，只会把长期状态不稳定升级成组织层面的状态不稳定。可靠 orchestration 的前提不是更多 worker，而是 parent agent 拥有稳定的 task graph、decision log、unresolved ledger 和 salience-to-replanning channel。目前这些东西大多仍寄存在自然语言上下文、plan 文本和 memory 文件里。
+
+**第二，模型 disposition 会让 orchestration 退化。** Codex 的默认吸引子偏向尽快把模糊问题转成可执行任务、形成显式 checklist、只用能审计的代码和测试，在已有 ontology 内完成更多局部搜索，用第一个足够合理的解释关闭问题。后果有三个：全局问题尚未解决，任务树已经被宣布可以执行；多个 subagent 往往围绕同一 decomposition 做更多工作，而不是形成真正异质的问题表示；没进入初始 task graph 的 unknown，不会因为增加 agent 数量而自动出现。于是 orchestration 容易退化成：
+
+$$
+\text{更多 workers} + \text{更多 review} + \text{更多 tests} + \text{更多摘要}
+$$
+
+而不是：
+
+$$
+\text{更好的问题分解} + \text{更强的全局重规划}
+$$
+
+**第三，harness 缺少长期 orchestration 所需的显式结构。** 真正的项目级 orchestrator 至少需要一组独立于普通聊天摘要的持久结构：task graph、unresolved ledger、decision log、evidence pointers、competing hypotheses、superseded state、stage 与 exit condition、anomaly-to-replanning channel。如果这些只存在于当前自然语言上下文中，compaction 就拥有了重写整个项目控制面的权力。GitHub 上的长期状态故障报告恰好列出了压缩后应该稳定保存的内容：当前用户请求、acceptance criteria、执行阶段、已完成工作、剩余工作、已运行命令、测试结果、已拒绝方法、未解决问题和 subagent 结果。换句话说，社区用户实际要求的不是一个更好的摘要，而是一套结构化 execution state。
+
+在这种条件下，我不得不形成一套自己的使用规则：显式规定什么时候使用 subagent，只把可以独立闭合的任务交给它，不让它返回完整原始任务，不回灌完整调查轨迹，只返回结论、证据位置和不确定性摘要。这里必须强调，这些不是 Codex harness 原生要求的规则，也不是使用 subagent 的一般真理。它们是我为了缓解长期状态不稳定和编排退化，手动形成的 context-containment 策略。换言之，我不是在使用 Codex 已经提供的成熟 orchestration，而是在亲自规定它如何使用 subagent，才不会把主上下文污染到无法继续工作。
+
+社区故事里也出现了相似的编排退化。一位用户把同一份简单 Flutter prototype 计划分别交给两边：Claude Code 大约四十分钟完成；Codex 把任务展开成 21 个 agent jobs、重复 implementation 和 review、多次完整测试，耗掉大半天及约九成周额度。该用户承认自己的 workflow 确实要求 TDD、review 和 subagent-per-task，但同一 workflow 被 Claude Code 按任务规模解释、被 Codex 按字面最大化执行，仍然显示了程序规则如何在 Codex 中转化成可审计的活动膨胀。
+
+另一位用户把问题直接概括成"Sol 很优秀，Codex 拖累了它"，具体抱怨包括长程任务中 structured plan state 被丢弃、working history 被过早压缩、parent agent 需要 babysit subagents，以及有效进展被埋进 transcript noise。
+
+所以核心问题不是 Codex 会不会调用 subagent，而是它能够扩展执行活动，却不能稳定地扩展全局判断能力。
+
+---
+
+### 2.5 局部故事俘获：当前实现开始定义真正目标
+
+长期状态不稳定、记忆生命周期失效和编排退化之后，会出现更危险的问题。它的基本形式是：
+
+```text
+原始用户目标
+→ implementation plan
+→ 当前 repo、memory 与工作流
+→ 当前局部问题
+```
+
+随着 agent 接触越来越多当前文件、规则、测试和错误，最后一级逐渐获得最高权威。系统不再问当前实现是否仍然服务原始目标，而开始问如何让当前实现通过它自己已经接受的流程。
+
+一个 GitHub 用户给出了非常准确的案例。用户要求在多个历史版本中找到正确版本并切换，也就是 `SELECT best_tree`，模型却把任务执行成 `PATCH current_tree`。它读取其他版本不是为了选择正确版本，而是把其他版本里的实现迁回当前错误版本，继续修补眼前世界。当前 repo 中的 gate、校准流程和既有程序甚至被用来否决"离开当前错误世界"的用户命令。这正是局部故事俘获：下游执行规则反过来覆盖了上游世界选择。
+
+项目 memory 会加深这种俘获。当旧计划、旧规则、旧 workaround 和旧 memory 仍然存在于有效上下文时，它们共同构成一种 sunk-context：当前 story 已经有大量文本支持，已有代码不断提供局部约束，memory 记录了如何让当前方案成立，workflow 奖励继续取得可审计进展，而删除当前 story 意味着废弃大量已完成工作。于是 agent 即使看见反例，也更容易把反例压成 edge case、deviation、compatibility issue 或后续重构项，而不是承认当前 specification 或 problem framing 本身可能不成立。
+
+---
+
+### 2.6 过早闭合：可审计证据被误当成充分证据
+
+在我的 auto-research 使用中，局部故事俘获通常和过早闭合一起出现。真正的问题可能是"某篇 memory paper 是否在相同 scope、机制、生命周期和功能条件下，实现并验证了 update"，Codex 的可审计吸引子却容易把它压成"有没有一篇 paper 在文字中提到了 update"。找到一个 textual witness 之后，系统就倾向于得出"update 已经有人做了"。它不一定在事实层面造假，而是在证据粒度上偷换问题：
+
+$$
+\text{topic-level mention} \rightarrow \text{claim-level coverage}
+$$
+
+仅仅提示"请多思考，不要提前得出结论"通常解决不了这个问题，因为这里同时存在两个独立失效。一个是 stopping failure，找到第一个可支持 witness 后就停止调查。另一个是 representation-resolution failure，没有把目标拆成足够细的 claim 和必要条件。即使把 reasoning 时间拉长，模型也可能只是在 topic level 上生成一篇更长、更漂亮、更可审计的总结。
+
+所以真正有效的 skill 不能主要堆 disposition rules，而应该提供不可跳步的工作流：
+
+```text
+拆解目标 claim 的必要条件
+→ 逐篇检查 scope
+→ 区分 mention / implementation / evidence / ablation
+→ 保存 unresolved cells
+→ 最后才能综合
+```
+
+这也是我认为 Codex 的 skill 里应该少放全局规则、多放阶段化 workflow 的原因。它对程序的字面服从可以被利用，但对大量抽象规则的字面服从，最终只会加剧规则堆积。
+
+---
+
+### 2.7 规则堆积最终会把用户变成 instruction lawyer
+
+为了修复长期状态不稳定、编排退化、局部故事俘获和过早闭合，用户会不断增加规则：必须使用 subagent、subagent 只能做独立闭合任务、不返回原始上下文、只返回摘要、不得过早下结论、必须保持 claim 粒度、必须保留 unresolved、必须允许修改 spec、必须删除过期 memory、不得只 append。
+
+但 Codex 的指令遵循往往非常字面。一条为了阻止某类事故而写的规则，可能在完全无关的阶段被机械执行。模型会在 reasoning 中明确地说："这一轮不做 X，不做 Y，不做 Z，因此只执行机械性的 A。"于是用户不得不继续给规则增加 scope、exception、phase、exit condition、escalation condition。`AGENTS.md` 与 skill 最终不再是一组高层协作原则，而逐渐变成一部不断打补丁的程序法典。
+
+这也是为什么 naive compaction skill 可能比原生压缩更差。它通常会把项目历史总结成当前目标、已完成内容、下一步和关键结论，但最容易被删掉的恰恰是：为什么放弃某条路径、哪些结论仍不确定、claim scope 如何变化、哪些 anomaly 尚未解释、哪些旧规则已经失效。同一个已经具有特定偏置的模型，给自己的偏置状态再写一次摘要，并不会自动获得独立性。
+
+最终产生的是：
+
+$$
+\text{规则越多} \rightarrow \text{上下文越重} \rightarrow \text{压缩越频繁} \rightarrow \text{行为越机械} \rightarrow \text{用户继续补规则}
+$$
+
+---
+
+### 2.8 高延迟使所有控制劳动变得更昂贵
+
+延迟不只是一个 UX 缺点，它会改变用户的整个控制策略。当一次 steer 很昂贵时，用户会倾向于一次性交代更大任务、写更长 prompt、让 agent 自主跑更久、减少中间检查、在 `AGENTS.md` 里预先加入更多规则、让主 agent 承担更多 orchestration。于是出现另一个循环：
+
+$$
+\text{高延迟} \rightarrow \text{更大任务批次} \rightarrow \text{更多上下文} \rightarrow \text{更多 compaction} \rightarrow \text{更多 drift} \rightarrow \text{更多规则}
+$$
+
+所以响应速度的真正意义不是让人少等几十秒，而是决定人机控制回路能够多高频地运行。低成本、高频率的 steering 可以在 story 刚开始漂移时纠正它；低频 steering 则迫使用户在任务开始前写更多规则，并在任务结束后承担更大的 recovery 和 rework。
+
+---
+
+## 三、Benchmark 与 Arena：强执行分数可以和差产品体验并存
+
+Artificial Analysis 当前把 Claude Code + Opus 5 xHigh 和 Codex + Sol Max 都评为 67，但内部结构不同。Sol/Codex 在 DeepSWE 拿到 69%、Terminal-Bench v2 拿到 88%；Opus/Claude Code 在 SWE-Atlas-QnA 拿到 55%，高于 Sol/Codex 的 43%；Codex 平均每任务更快、更便宜、用更少 token。
+
+这个 split 和本文讨论的差异高度一致。Sol/Codex 更强的部分主要是标准化 issue resolution、terminal execution、patch，以及测试和命令驱动的验证回路。Opus/Claude Code 更强的部分更接近跨模块代码库理解、长上下文中的关系恢复、situated repository reasoning。综合分数把两种完全不同的 agent disposition 压成了一个数字。
+
+更重要的是，这类 benchmark 预先给定：问题定义已经正确，任务边界固定，成功标准可执行，环境不需要真实用户回答，closure condition 也相对明确。它们主要测量：
+
+$$
+\text{在正确 map 内完成任务的能力}
+$$
+
+而不是：
+
+$$
+\text{发现 map 错了并重写任务的能力}
+$$
+
+Agent Arena 则显示了另一个有意义的分裂。截至 2026 年 8 月 5 日，Opus 5 High 的 Confirmed Success 为 16.42%，GPT-5.6 Sol xHigh 为 8.97%，也就是说 Opus 5 让用户明确确认任务完成的比例约为 Sol 的 1.83 倍。但两者在 Praise vs Complaint 上是 21.37% 对 21.32%，Steerability 是 9.08% 对 9.28%，几乎相同。
+
+这说明差距不能简单解释成用户更喜欢 Claude 的语气、或者 Claude 用户更容易夸模型。更合理的解释是 Sol 可以完成大量局部、可见、可审计、同时模型自认为有意义的工作，但这些工作更少转化成用户最终认可的 closure。
+
+而且 Artificial Analysis 明确说明其 Cost per Task 只统计 pay-per-token API 成本，不包括 infrastructure、engineering 和 supervision；Time per Task 也不包括 verifier、judge 和其他 harness overhead。换句话说，benchmark 中默认：
+
+$$
+C_{\text{human control}} = 0
+$$
+
+无论用户实际花了多少时间恢复状态、拆解任务、管理 subagent、清理 memory、修正 compaction、纠正局部故事俘获、阻止过早闭合、维护 `AGENTS.md` 和 skills，这些劳动都不会被计入 Codex 的成本。所以"Codex benchmark 更高、更快、更便宜"和"Codex 在真实长程工作中的总拥有成本更高"同时成立。
+
+一项对 Claude Code 和 Codex 执行相同科学计算任务的研究也观察到了不同 disposition：Claude Code 更快、更自主，但会静默偏离或重新解释 specification；Codex 更慢、更字面，并通过显式重启进行自我纠正。两者最后都完成任务，但在速度、可审计性和 instruction interpretation 上差异明显。
+
+这说明 Claude Code 也并非没有风险。Claude 的风险是自主性越权，Codex 的风险是把意图判断、状态控制、知识治理和工作编排大量退还给用户。
+
+---
+
+## 四、这个问题为什么恶毒
+
+不只是因为管理 agent 很累。恶毒的地方在于，产品把用户最宝贵的职业时间重新分类成了"使用工具的摩擦"。
+
+用户原本的本职工作可能是提出研究问题、判断产品方向、设计系统、建立理论、完成创造性实现、解释实验结果。用了 agent 之后，可能有大量时间花在判断模型又忘了什么、决定是否该开 subagent、设计 subagent 的任务边界和返回格式、清理过时规则、修复 memory 漂移、判断它是不是正在维护错误 story、阻止错误 completion、为它编写更多 skills、重新启动一个 fresh context 做 reframing。这些不是原工作中的自然子任务，而是管理工具本身的持续劳动。
+
+### 4.1 它消耗的是最高价值的人类注意力
+
+模型承担的是相对容易并行的执行，用户承担的却是 specification、semantic verification、architecture judgment、anomaly interpretation、reframing、memory lifecycle 和 closure authority。这恰恰是最昂贵、最难并行、最不能被频繁打断的人类工作。
+
+项目记忆问题尤其说明这一点。用户不是偶尔清理一个文件，而是在持续决定什么值得记、应该记多细、哪些 memory 已过期、哪些应该提升成正式规则、哪些应该删除、哪些冲突需要裁决、哪一个文件才是 source of truth。这是一整套知识库管理工作。
+
+### 4.2 它在产品指标中不可见
+
+模型写出的 patch 被统计成模型产出，用户维护 agent 的时间却没有任何计量。于是：
+
+$$
+\text{reported productivity} = \text{machine output} + 0 \times \text{human management work}
+$$
+
+一个产品可以在 benchmark 中显得更快、更便宜，同时在现实中占掉用户整个工作日。
+
+### 4.3 它会伪装成用户能力问题
+
+当系统表现不好时，最方便的解释是你没有写好 `AGENTS.md`、没有正确使用 subagent、skill 不够完善、prompt 粒度不对、没有定期清理 memory、没有搭建外部状态层。这把产品级控制缺陷重新解释成了用户不够熟练。
+
+但当用户为了让 agent 正常工作，必须亲自实现 memory system、orchestration policy、compaction protocol、claim-resolution workflow、reframing skill 和 document-gardening process，这已经不叫 customization，这是用户在无薪补产品。
+
+### 4.4 这份工作到底有多重
+
+OpenAI 的 harness-engineering 文章描述了一个完全 agent-first 的开发团队。在那个项目里人类不直接写代码，工程师的主要工作转向构建 scaffolding、提供工具、让 UI 和 logs 和 metrics 对 agent 可读、设计文档结构、维护 repository knowledge、提升 agent legibility。文章直接说团队的主要工作变成了"使 agent 能够做有用工作"，而随着代码吞吐提高，人类 QA capacity 成为新的瓶颈。
+
+对一个专门建设 agent-first 基础设施的团队来说，这是合理的。但个人开发者并没有签约成为 Codex 平台工程师。如果一个普通用户为了完成自己的软件、论文或研究项目，也必须承担同样的 scaffolding、memory governance、agent legibility、doc gardening、workflow engineering 和 QA orchestration，那么产品实际上是在要求每个客户建立一支缩小版的 agent-infrastructure team。这正是问题最恶毒的地方：它把一种本应由产品团队承担的系统工程工作，分散给了每一个终端用户。
+
+---
+
+## 五、逆向"人月神话"：形式化被隐藏的人类工作
+
+经典《人月神话》指出，增加更多工程师不会线性提高软件产量，因为任务分解、沟通和协调成本会增长。Coding agent 里出现了一个逆向版本：机器执行能力可以廉价扩展，但 specification、verification、integration、reframing、memory governance 和 ownership 仍然集中在人类这一串行节点上。
+
+可以把有效产出写成：
+
+$$
+V_{\text{useful}} = \min\left(E_M,\ S_H,\ V_H,\ I_H,\ R_H,\ M_H,\ O_H\right)
+$$
+
+其中 $E_M$ 是模型执行吞吐，$S_H$、$V_H$、$I_H$、$R_H$、$M_H$、$O_H$ 分别对应人类定义 specification、进行 semantic verification、整合改动、重新定义问题、治理项目 memory，以及理解并承担 ownership 的能力。
+
+Codex/Sol 可以极大提高 $E_M$。但如果它同时增加了后六项的用户负担，更多模型产出不会线性转化成更多有用软件，只会增加 review backlog、assumption debt、integration debt、memory debt、ownership gap、未被理解的代码量和用户控制劳动。
+
+更完整的总成本应该写成：
+
+$$
+C_{\text{total}} = C_{\text{tokens}} + C_{\text{runtime}} + C_{\text{human control}} + C_{\text{memory governance}} + C_{\text{recovery}} + C_{\text{rework}}
+$$
+
+而不是只算 API token 和 agent wall time。真正应该优化的指标也不是每小时生成多少代码，而是：
+
+$$
+\text{Human-attention leverage} = \frac{\text{validated, understood, accepted change}}{\text{human epistemic attention}}
+$$
+
+这里三个限定词缺一不可。validated 不只是生成出来或测试通过；understood 是用户能够接管关键 invariant；accepted 是结果真正符合用户目标。
+
+### 5.1 真正的 agent benchmark 还缺什么
+
+一个有意义的 coding-agent 评估，至少还应该测量以下内容。
+
+**长期状态：** compaction 后是否保存当前 checkpoint；是否重复已完成工作；unresolved 与 superseded state 能否存活；多轮之后还能否解释关键决策为何成立。
+
+**Memory lifecycle：** 用户能否检查 memory；是否支持 update、delete、supersede 和 expiry；新旧 memory 冲突时谁优先；项目 scope 是否明确；memory 是否逐渐膨胀；用户每周需要花多少时间 pruning。
+
+**编排质量：** subagent 是否真正提高搜索 diversity；新发现能否修改 task graph；主 agent 是不是只在增加 review 和 tests；编排是否降低了用户监督负担。
+
+**Story-level correctness：** 当前实现是否开始覆盖原始目标；agent 能否识别 specification 已经不成立；anomaly 能否触发 reframing，而不只是局部 patch。
+
+**Closure quality：** 系统是否保留 inconclusive；是否把 topic-level textual witness 当成 claim-level evidence；用户是否真正确认结果可接受。
+
+**人类劳动：** 用户需要多少次 steering；花多少时间管理状态、规则和 subagent；花多少时间清理 memory；能否在 agent 离开后接管项目；每项 accepted change 消耗多少人类高质量注意力。
+
+---
+
+## 六、结论
+
+Codex 和 GPT-5.6 Sol 可以是一台非常强的执行机器，公开 benchmark 清楚证明了这一点。但如果一个号称自主 coding agent 的产品，要求用户持续充当 orchestrator、memory janitor、compaction engineer 和 instruction lawyer，那么它没有真正替用户承担完整的工作，只是自动化了最容易展示和计量的执行部分，把最贵也最不可扩展的控制劳动留给了用户。
+
+所以"Claude Code 在替我工作，Codex 在逼我学习如何管理 Codex"这句粗暴的体验判断，不只是情绪化的产品偏好。它指出了 coding-agent benchmark 长期漏算的核心变量：为了让 agent 看起来自主，用户究竟无薪承担了多少使它能够自主的工作。项目记忆问题让这个变量变得尤其具体。Codex 不只是把项目管理退还给用户，它还把项目记忆系统最困难的部分，也就是更新、失效、冲突解决、删除与定期清理，包装成了用户应该自行承担的文档卫生。
+
+社区案例无法告诉我们这些故障的总体发生率，GitHub issue 和 Reddit 故事也都存在明显的选择偏差。我自己这部分同样不干净：这里面有多少是 Codex 的产品选择，有多少是我写 prompt、堆规则和不肯早点 steer 的习惯，我到现在没完全分清。而且 2.3 里那些 memory 生命周期问题，我不确定有多少是当前这代产品可以真正解决的，有多少是自然语言记忆本身的难题。
+
+但有七条线索指向同一个机制：长期的个人对照体验，官方承认大 `AGENTS.md` 方案失败，Local Memories 被定位成 generated state，compaction 后重复工作的 GitHub issue，`PATCH current_tree` 这样的 goal takeover 案例，社区对 stale memory、人工 pruning 和 parent babysitting 的反馈，以及 benchmark 里强执行与低用户确认成功率的分裂。凑到一起，它就不再是一组零散抱怨，而是产品架构和评测方法上的结构性问题：机器劳动可以迅速扩展，但我们仍在把维持机器劳动有效性的控制、记忆与判断工作，悄悄记在用户头上。
