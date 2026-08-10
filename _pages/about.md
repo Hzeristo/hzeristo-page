@@ -16,11 +16,6 @@ profile:
 selected_papers: true # 首页展示标记为 selected={true} 的论文
 social: true # 底部显示社交图标（链接来自 _data/socials.yml）
 
-announcements:
-  enabled: true
-  scrollable: true
-  limit: 5
-
 latest_posts:
   enabled: true
   scrollable: true

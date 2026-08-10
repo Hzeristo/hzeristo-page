@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 不是任务，是第二份工作：Coding Agent 如何把控制劳动退还给用户
+title: 第二份工作：Coding Agent 如何把控制劳动退还给用户
 date: 2026-08-09 12:00:00
 description: 从 Codex 与 Claude Code 的差异，谈被 benchmark 漏算的人类工作
 tags: coding-agent harness-engineering
@@ -10,7 +10,7 @@ related_posts: false
 
 ## 从 Codex 与 Claude Code 的差异，谈被 benchmark 漏算的人类工作
 
-Coding agent 最恶毒的问题不是它偶尔写错代码，也不是用户偶尔需要补一个 prompt。真正的问题是它把一整套持续的项目管理、状态维护和判断控制退还给用户，却仍然把最后生成的代码全部计成自己的生产力。
+Coding agent 最恶毒的问题不是它偶尔发生的实现漂移，也不是用户偶尔需要补一个 steering prompt。真正的问题是它把一整套持续的项目管理、状态维护和判断控制退还给用户，却仍然把最后生成的代码全部计成自己的生产力。
 
 这里要严格区分任务和工作。任务可以是查找某个 API 的调用点、修复一个测试、实现一个已经冻结的接口、给某个模块补类型定义。工作则是持续承担：当前究竟在解决什么问题、哪些假设仍然成立、任务该怎么分解、哪些新发现要求修改 specification、哪些历史决策已经失效、什么时候该继续什么时候该停、最终结果是不是真的符合目标。
 
@@ -20,7 +20,7 @@ Coding agent 最恶毒的问题不是它偶尔写错代码，也不是用户偶�
 
 ## 一、不是"代码写得好不好"
 
-GPT-5.6 Sol 不是一个弱模型。在 Artificial Analysis 当前的 Coding Agent Index v1.3 里，Claude Code + Opus 5 xHigh 与 Codex + GPT-5.6 Sol Max 的综合分数同为 67，但子项分开：
+GPT-5.6 Sol 不是一个"弱"模型。在 Artificial Analysis 当前的 Coding Agent Index v1.3 里，Claude Code + Opus 5 xHigh 与 Codex + GPT-5.6 Sol Max 的综合分数同为 67，子项分开：
 
 | 指标                                 | Claude Code + Opus 5 xHigh | Codex + GPT-5.6 Sol Max |
 | ------------------------------------ | -------------------------: | ----------------------: |
@@ -30,9 +30,8 @@ GPT-5.6 Sol 不是一个弱模型。在 Artificial Analysis 当前的 Coding Age
 | SWE-Atlas-QnA                        |                        55% |                     43% |
 | 平均模型成本 / 运行时间 / token 用量 |                       更高 |                    更低 |
 
-Artificial Analysis 自己提醒，综合分数相似的 agent 仍可能在代码库理解、终端执行和 rubric-based 任务上呈现完全不同的能力剖面。
 
-所以本文不主张 Codex 因为不会写代码所以不如 Claude Code。本文讨论的是另一件事：一个强模型经过特定 harness 组织之后，究竟是在替用户承担持续工作，还是要求用户长期承担一套隐藏的控制劳动，才能释放它的局部执行能力。
+但是本文讨论的是另一件事：一个强模型经过特定 harness 组织之后，究竟是在替用户承担持续工作，还是要求用户长期承担一套隐藏的控制劳动，才能释放它的局部执行能力。
 
 为了保持全文一致，下面用五个固定术语：
 
@@ -62,15 +61,15 @@ Artificial Analysis 自己提醒，综合分数相似的 agent 仍可能在代�
 
 重度使用 Codex 之前，我长期用 Claude Code，以及 Opus/Fable 1M：我知道相似的长程 coding 和 research 工作，并不必然要求用户承担这么重的外部控制。
 
-缺少这种对照的话，Codex 的许多行为很容易被解释成 agentic coding 的自然困难：长任务本来就会遗忘，agent 本来就需要很多规则，多 agent 本来就必须频繁总结，项目本来就需要用户手动切任务，模型本来就应该严格执行 `AGENTS.md`，research 本来就只能从关键词判断前人是否做过。但当另一套产品已经能够原生承担更多状态管理、上下文解释和动态重规划时，这些行为就不再是领域定律，而是某种具体的 **model × harness disposition**。
+缺少这种对照的话，Codex 的许多行为很容易被解释成 agentic coding 的自然困难：长任务本来就会遗忘，agent 本来就需要很多规则，多 agent 本来就必须频繁总结，项目本来就需要用户手动切任务，模型本来就应该严格执行 `AGENTS.md`，research 本来就只能从关键词判断前人是否做过。但当另一套产品已经能够原生承担更多状态管理、上下文解释和动态重规划时，这些行为就不再是pua一般的使用手册，而是某种具体的 **model × harness disposition**。
 
-比较经验还有一个更重要的作用：它让人能识别"从未发生的能力"。Codex 的问题往往不表现为明显报错，而表现为某些事件很少自然发生。Agent 很少主动认为当前 story 可能错了；高显著发现很少真正重写计划；unresolved 很少长期存活；claim 很少被主动拆到可证伪的实验结果/命题粒度；旧规则很少被判断为已失效并删除；orchestrator 很少同时维持多个互相竞争的全局解释。如果用户从未见过这些行为，就很容易继续给模型加规则，而不是意识到这里缺少的是一种 disposition。
+比较经验还有一个更重要的作用：它让人能识别"从未发生的能力"。Codex 的问题往往表现为某些事件很少自然发生。Agent 很少主动认为当前 story 可能错了；高显著发现很少真正重写计划；unresolved 很少长期存活；claim 很少被主动拆到可证伪的实验结果/命题粒度；旧规则很少被判断为已失效并删除；orchestrator 很少同时维持多个互相竞争的全局解释。如果用户从未见过这些行为，就很容易继续给模型加更多的更细粒度的规则，而不是意识到这里缺少的是一种 disposition。
 
 ---
 
-### 2.2 长期状态不稳定：长任务放不下，短任务用不完
+### 2.2 长任务放不下，短任务用不完
 
-在我当前的 Codex 配置和项目使用里，272k 有效工作上下文处在一个很尴尬的位置。
+在我当前的 Codex 配置和项目使用里，272k (258k) 有效工作上下文处在一个很尴尬的位置。
 
 对真正的长程项目，它放不下完整的问题图景、多轮实现历史、competing hypotheses、当前 task graph、已解决与未解决状态、原始 evidence 与 provenance、多个 subagent 的调查轨迹，以及规则与规则之间的历史关系。一旦这些内容共同进入主会话，compaction 就不再是偶发事件，而成为长期运行的核心状态转换。
 
@@ -102,7 +101,7 @@ Codex 的 Local Memories 会从符合条件的历史 thread 中抽取有用内�
 
 Claude Code 社区也出现了相同的一般性问题。有用户报告 auto memory 会变得 stale，不持续要求 Claude 更新就会开始漂移；另一些用户每周执行 memory sweep，主动审查和删除过期内容。这说明 append-only 不是 Codex 独有的产品 bug，而是自然语言 agent memory 的一般生命周期难题。差别在于一个系统是否把这种治理负担透明化、局部化，并降低到可接受范围。
 
-#### 2.3.2 覆盖旧规则不等于旧规则真正消失
+#### 2.3.2 覆盖旧规则 vs 旧规则真正消失
 
 Codex 会沿目录层级读取 `AGENTS.md`，从全局、repo root 一直到当前工作目录，按顺序把文件连接到同一个 prompt。靠近当前目录的规则因为出现得更晚而具有 override 效果，默认合并上限是 32 KiB。
 
@@ -132,7 +131,7 @@ Local Memories 的检索和冲突处理更加不透明。官方只说明 `use_me
 
 所以问题不是 memory 能不能被读取，而是项目是否存在一个可检查、可更新、可删除、可确定优先级的 authoritative state。
 
-#### 2.3.3 记忆粒度会在临时噪声和空洞原则之间摇摆
+#### 2.3.3 摇摆的记忆粒度
 
 自动 memory 必须决定什么值得保存，以及以多大粒度保存。粒度过细时，系统可能永久记录一次性路径和临时 workaround，也可能记住某个环境才有的命令、单次任务里的局部错误，或者只在当前 branch 成立的限制。粒度过粗时，它又可能把"某种方案在一个特殊 constraint 下失败"压成"以后不要使用这种方案"。
 
@@ -144,7 +143,7 @@ Codex Local Memories 使用独立的 extraction 与 consolidation 模型，但�
 
 Claude Code 社区逐渐形成的经验指向同一个难题。其 per-project `MEMORY.md` 在部分 rollout 中只自动加载前 200 行，因此用户把它改造成一个短索引，把 architecture、gotchas 和 decisions 分散到按需读取的主题文件里。社区提示词甚至明确要求更新或删除过时 memory，并按语义主题而不是时间顺序组织。这是一种合理的 granularity policy，但它再次说明可靠 memory 不是多记一点，而是要区分 index、evidence、decision、rule 和 temporary state。而这种区分本身又是一项持续的知识工程工作。
 
-#### 2.3.4 宏观记忆文件会自然膨胀
+#### 2.3.4 自然膨胀的宏观记忆文件
 
 在我的实际使用中，`AGENTS.md`、skills 和 memories 会不断增长。原因很简单：项目持续产生新的规则、异常、历史经验、workaround、decision 和 exception，而如果写入新内容比判断旧内容是否失效更容易，增长就是默认结果。
 
@@ -162,7 +161,7 @@ OpenAI 自己的 harness-engineering 文章提到，他们试过"一个巨大 `A
 
 ---
 
-### 2.4 编排退化：会调用 subagent，不等于会 orchestration
+### 2.4 会调用 subagent vs 会 orchestration
 
 在我的配置和实际使用中，Codex 主 agent 不适合承担真正的项目级 orchestration。这个判断至少来自三个方面。
 
@@ -209,6 +208,8 @@ $$
 
 项目 memory 会加深这种俘获。当旧计划、旧规则、旧 workaround 和旧 memory 仍然存在于有效上下文时，它们共同构成一种 sunk-context：当前 story 已经有大量文本支持，已有代码不断提供局部约束，memory 记录了如何让当前方案成立，workflow 奖励继续取得可审计进展，而删除当前 story 意味着废弃大量已完成工作。于是 agent 即使看见反例，也更容易把反例压成 edge case、deviation、compatibility issue 或后续重构项，而不是承认当前 specification 或 problem framing 本身可能不成立。
 
+对于这一点，ACL'26 best paper "The Imperfective Paradox in Large Language Models"[https://arxiv.org/abs/2601.09373] 有深入的，原理性的讨论。
+
 ---
 
 ### 2.6 过早闭合：可审计证据被误当成充分证据
@@ -235,7 +236,7 @@ $$
 
 ---
 
-### 2.7 规则堆积最终会把用户变成 instruction lawyer
+### 2.7 规则堆积：用户 = instruction lawyer
 
 为了修复长期状态不稳定、编排退化、局部故事俘获和过早闭合，用户会不断增加规则：必须使用 subagent、subagent 只能做独立闭合任务、不返回原始上下文、只返回摘要、不得过早下结论、必须保持 claim 粒度、必须保留 unresolved、必须允许修改 spec、必须删除过期 memory、不得只 append。
 
@@ -251,7 +252,7 @@ $$
 
 ---
 
-### 2.8 高延迟使所有控制劳动变得更昂贵
+### 2.8 高延迟：昂贵的用户控制
 
 延迟不只是一个 UX 缺点，它会改变用户的整个控制策略。当一次 steer 很昂贵时，用户会倾向于一次性交代更大任务、写更长 prompt、让 agent 自主跑更久、减少中间检查、在 `AGENTS.md` 里预先加入更多规则、让主 agent 承担更多 orchestration。于是出现另一个循环：
 
@@ -263,7 +264,7 @@ $$
 
 ---
 
-## 三、Benchmark 与 Arena：强执行分数可以和差产品体验并存
+## 三、Benchmark & Arena：强执行分数可以和差产品体验并存
 
 Artificial Analysis 当前把 Claude Code + Opus 5 xHigh 和 Codex + Sol Max 都评为 67，但内部结构不同。Sol/Codex 在 DeepSWE 拿到 69%、Terminal-Bench v2 拿到 88%；Opus/Claude Code 在 SWE-Atlas-QnA 拿到 55%，高于 Sol/Codex 的 43%；Codex 平均每任务更快、更便宜、用更少 token。
 
